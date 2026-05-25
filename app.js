@@ -1,5 +1,15 @@
 ﻿const form = document.querySelector("#proposalForm");
 const printButton = document.querySelector("#printProposal");
+const saveButton = document.querySelector("#saveProposal");
+
+// Initialize Supabase client
+// Replace with your Supabase URL and anon key
+const SUPABASE_URL = "https://bcqpvlciuopdblktvijh.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_DqOGfdxj2_ZnvC4lq6Nu8Q_s7aZBRWj";
+
+if (typeof window.supabase !== "undefined") {
+  supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+}
 
 const priceChart = [
   { series: "Compact", length: 3, width: 1.5, depth: 1.2, mep: 120000, shell: 155000, price: 275000, tag: "" },
@@ -276,8 +286,148 @@ setToday();
 form.addEventListener("input", render);
 form.addEventListener("change", render);
 printButton.addEventListener("click", () => window.print());
+
+// Save to Supabase functionality
+function collectQuotationData() {
+  const length = asNumber(fields.length, 0);
+  const width = asNumber(fields.width, 0);
+  const depth = asNumber(fields.depth, 0);
+  const unit = fields.unit.value;
+  const lengthM = toMeters(length, unit);
+  const widthM = toMeters(width, unit);
+  const depthM = toMeters(depth, unit);
+  const areaSqFt = sqFtFrom(length, width, unit);
+  const volumeLitres = litresFrom(length, width, depth, unit);
+  const baseRate = asNumber(fields.baseRate, 0);
+  const gstRate = asNumber(fields.gstRate, 0);
+  const chart = closestChart(lengthM, widthM, depthM, areaSqFt, baseRate);
+  const defaultInstallation = Math.round(chart.shell * 0.18);
+  const defaultShell = Math.max(0, chart.shell - defaultInstallation);
+  const shellAmount = asNumber(fields.shellUnitPrice, 0) > 0 ? asNumber(fields.shellUnitPrice, 0) : defaultShell;
+  const installationAmount = asNumber(fields.installationUnitPrice, 0) > 0 ? asNumber(fields.installationUnitPrice, 0) : defaultInstallation;
+  const mepAmount = asNumber(fields.mepUnitPrice, 0) > 0 ? asNumber(fields.mepUnitPrice, 0) : chart.mep;
+  const adjustedSubtotal = shellAmount + installationAmount + mepAmount;
+  const gst = Math.round(adjustedSubtotal * (gstRate / 100));
+  const grandTotal = fields.includeGst.checked ? adjustedSubtotal + gst : adjustedSubtotal;
+
+  return {
+    client_name: fields.clientName.value.trim() || "Client",
+    project_location: fields.location.value.trim() || "Project site",
+    proposal_date: fields.proposalDate.value || new Date().toISOString().split('T')[0],
+    quote_number: fields.quoteNo.value.trim() || "Draft",
+    pool_length: length,
+    pool_width: width,
+    pool_depth: depth,
+    measurement_unit: unit,
+    pool_type: fields.poolType.value,
+    surface_area_sqft: Math.round(areaSqFt * 100) / 100,
+    volume_litres: Math.round(volumeLitres),
+    base_rate: baseRate,
+    gst_rate: gstRate,
+    shell_price: shellAmount,
+    installation_price: installationAmount,
+    mep_price: mepAmount,
+    subtotal: adjustedSubtotal,
+    gst_amount: gst,
+    grand_total: grandTotal,
+    include_gst: fields.includeGst.checked,
+    scope: fields.scope.value.trim(),
+    notes: fields.notes.value.trim(),
+    created_at: new Date().toISOString()
+  };
+}
+
+async function saveProposalToSupabase() {
+  if (!supabase) {
+    alert("Supabase is not configured. Please add your Supabase URL and anon key to app.js.");
+    return;
+  }
+
+  saveButton.disabled = true;
+  saveButton.textContent = "Saving...";
+
+  try {
+    const quotationData = collectQuotationData();
+
+    const { data, error } = await supabase
+      .from("quotations")
+      .insert([quotationData])
+      .select();
+
+    if (error) {
+      console.error("Supabase error:", error);
+      alert(`Error saving proposal: ${error.message}`);
+      return;
+    }
+
+    // Show success message
+    showSuccessMessage("Proposal saved successfully!");
+    console.log("Saved quotation:", data);
+  } catch (err) {
+    console.error("Error:", err);
+    alert("An error occurred while saving the proposal.");
+  } finally {
+    saveButton.disabled = false;
+    saveButton.textContent = "Save";
+  }
+}
+
+function showSuccessMessage(message) {
+  // Create temporary success message element
+  const messageEl = document.createElement("div");
+  messageEl.textContent = message;
+  messageEl.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: #10b981;
+    color: white;
+    padding: 12px 20px;
+    border-radius: 6px;
+    font-size: 14px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 10000;
+    animation: slideIn 0.3s ease-out;
+  `;
+
+  document.body.appendChild(messageEl);
+
+  // Add animation styles
+  const style = document.createElement("style");
+  style.textContent = `
+    @keyframes slideIn {
+      from {
+        transform: translateX(400px);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+    @keyframes slideOut {
+      from {
+        transform: translateX(0);
+        opacity: 1;
+      }
+      to {
+        transform: translateX(400px);
+        opacity: 0;
+      }
+    }
+  `;
+  if (!document.querySelector("style[data-animations]")) {
+    style.setAttribute("data-animations", "true");
+    document.head.appendChild(style);
+  }
+
+  // Remove message after 4 seconds
+  setTimeout(() => {
+    messageEl.style.animation = "slideOut 0.3s ease-out forwards";
+    setTimeout(() => messageEl.remove(), 300);
+  }, 4000);
+}
+
+saveButton.addEventListener("click", saveProposalToSupabase);
+
 render();
-
-
-
-
