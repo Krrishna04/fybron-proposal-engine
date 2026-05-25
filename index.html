@@ -1,0 +1,264 @@
+﻿<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Fybron Pool Proposal Maker</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="workspace" aria-label="Proposal builder">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Fybron.in</p>
+            <h1>Pool Proposal Maker</h1>
+          </div>
+          <img class="topbar-logo" src="assets/fybron-logo.jpeg" alt="Fybron Pools">
+          <button class="icon-button" id="printProposal" type="button" aria-label="Print proposal" title="Print proposal">Print</button>
+        </header>
+
+        <div class="builder-grid">
+          <form class="panel input-panel" id="proposalForm">
+            <div class="section-title"><h2>Client</h2></div>
+            <label><span>Client name</span><input id="clientName" type="text" value="Palm Grove Resort" autocomplete="organization"></label>
+            <label><span>Project location</span><input id="location" type="text" value="Alappuzha, Kerala" autocomplete="address-level2"></label>
+            <div class="split">
+              <label><span>Proposal date</span><input id="proposalDate" type="date"></label>
+              <label><span>Quote number</span><input id="quoteNo" type="text" value="QU2026-MY-001"></label>
+            </div>
+
+            <div class="section-title"><h2>Pool Size</h2></div>
+            <div class="split">
+              <label><span>Length</span><input id="length" type="number" min="1" step="0.01" value="6"></label>
+              <label><span>Width</span><input id="width" type="number" min="1" step="0.01" value="2.75"></label>
+            </div>
+            <div class="split">
+              <label><span>Avg. depth</span><input id="depth" type="number" min="0.5" step="0.01" value="1.2"></label>
+              <label><span>Unit</span><select id="unit"><option value="m">Meters</option><option value="ft">Feet</option></select></label>
+            </div>
+            <label>
+              <span>Pool type</span>
+              <select id="poolType">
+                <option value="Fibreglass In-Ground Skimmer Pool">Fibreglass In-Ground Skimmer Pool</option>
+                <option value="Plunge Pool">Plunge Pool</option>
+                <option value="Prefabricated Panel Pool">Prefabricated Panel Pool</option>
+                <option value="Infinity Pool">Infinity Pool</option>
+                <option value="Indoor Pool">Indoor Pool</option>
+                <option value="Custom Pool">Custom Pool</option>
+              </select>
+            </label>
+
+            <div class="section-title"><h2>Commercials</h2></div>
+            <div class="split">
+              <label><span>Fallback total rate / sq ft</span><input id="baseRate" type="number" min="0" step="100" value="3900"></label>
+              <label><span>GST %</span><input id="gstRate" type="number" min="0" step="0.1" value="18"></label>
+            </div>
+            <div class="commercial-grid">
+              <label><span>Pool shell unit price</span><input id="shellUnitPrice" type="number" min="0" step="1000" value="0"></label>
+              <label><span>Positioning / installation unit price</span><input id="installationUnitPrice" type="number" min="0" step="1000" value="0"></label>
+              <label><span>MEP & accessories unit price</span><input id="mepUnitPrice" type="number" min="0" step="1000" value="0"></label>
+            </div>
+            <label class="check-row"><input id="includeGst" type="checkbox"><span>Show GST in total</span></label>
+            <label><span>Included scope</span><textarea id="scope" rows="5">Supply and deliver the approved Fybron fibreglass pool shell to the project site. Install the complete pool system, including filtration equipment, pump, pipelines, electrification, underwater lighting, testing, commissioning, and handover in ready-to-use condition.</textarea></label>
+            <label><span>Notes / exclusions</span><textarea id="notes" rows="4">Civil excavation, 100 mm RCC pool bed, pump room, decking, coping, retaining walls, external finishing, electrical cabling beyond plant room, landscaping, statutory approvals, and labour-union related matters are excluded unless quoted separately.</textarea></label>
+          </form>
+
+          <aside class="panel summary-panel" aria-label="Live estimate">
+            <div class="pool-visual"><div class="water"><span id="visualLabel">6 x 2.75 m</span></div></div>
+            <div class="metric-grid">
+              <div><span>Chart match</span><strong id="chartMatch">Family 6 x 2.75</strong></div>
+              <div><span>Pool area</span><strong id="surfaceArea">178 sq ft</strong></div>
+              <div><span>Water volume</span><strong id="volume">19,800 L</strong></div>
+              <div><span>Estimated total</span><strong id="estimate">Rs 6,97,000</strong></div>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <section class="proposal" id="proposal" aria-label="Generated proposal">
+        <img class="quotation-letterhead" src="assets/image2.png" alt="Fybron Pools quotation header">
+        <div class="proposal-head">
+          <h2 id="proposalTitle">Proposal for Fybron Fibreglass In-Ground Skimmer Pool</h2>
+        </div>
+
+        <div class="proposal-meta">
+          <div><span>Prepared for</span><strong id="outClient">Palm Grove Resort</strong></div>
+          <div><span>Location</span><strong id="outLocation">Alappuzha, Kerala</strong></div>
+          <div><span>Date</span><strong id="outDate">16 May 2026</strong></div>
+          <div><span>Quote #</span><strong id="outQuoteNo">QU2026-MY-001</strong></div>
+        </div>
+
+        <p class="lead" id="proposalIntro"></p>
+
+        <figure class="pool-image-card">
+          <img src="assets/fybron-pool-image.png" alt="Fybron swimming pool visual">
+          <figcaption><span>Pool image</span><strong id="poolImageSize">Size: 6 x 2.75 x 1.2 m</strong></figcaption>
+        </figure>
+
+        <div class="proposal-columns">
+          <div><h3>Pool Specifications</h3><dl class="spec-list" id="specList"></dl></div>
+          <div>
+            <h3>Why Fybron Composite Pools</h3>
+            <ul>
+              <li>Factory-manufactured FRP/GRP pool shell with smooth pigmented gelcoat finish.</li>
+              <li>Quick installation and commissioning after site readiness.</li>
+              <li>Low-maintenance non-porous finish designed to reduce algae growth.</li>
+              <li>Customizable colour, access steps, lighting, filtration, and site layout.</li>
+            </ul>
+          </div>
+        </div>
+
+        <h3>Price & Scope Summary</h3>
+        <table class="quote-table">
+          <thead><tr><th>Description</th><th>Unit Price</th><th>Qty</th><th>Amount</th></tr></thead>
+          <tbody id="quoteRows"></tbody>
+        </table>
+
+        <div class="total-line"><span id="amountWords"></span><strong id="grandTotal">Rs 6,97,000</strong></div>
+
+        <section class="proposal-section">
+          <h3>Commercial & Technical Proposal Summary</h3>
+          <ul id="technicalSummary"></ul>
+        </section>
+
+        <section class="proposal-section">
+          <h3>Payment Terms</h3>
+          <ul>
+            <li>50% advance payment upon order confirmation.</li>
+            <li>40% payment upon delivery of pool shell to site.</li>
+            <li>10% balance payment upon completion and handover of the project.</li>
+          </ul>
+        </section>
+
+        <section class="proposal-section">
+          <h3>Project Timeline</h3>
+          <ul>
+            <li>Manufacturing & delivery: 30 working days from complete first stage advance receipt.</li>
+            <li>Installation & commissioning: 5-7 days after material delivery, subject to site readiness.</li>
+          </ul>
+        </section>
+
+        <section class="proposal-section">
+          <h3>Warranty & Durability</h3>
+          <ul>
+            <li>The fibreglass pool shell is engineered for an expected service life of approximately 30-45 years, subject to normal usage and proper maintenance.</li>
+            <li>The pool shell carries a 10-year material warranty against water leakage, effective from the date of installation.</li>
+            <li>Gelcoat colour variation due to regular use and chlorination is not covered under warranty.</li>
+            <li>Electrical and mechanical components are covered by manufacturer warranty.</li>
+          </ul>
+        </section>
+
+        <h3>Proposed MEP & Water Treatment Scope</h3>
+        <table class="items-table">
+          <thead><tr><th>Photo</th><th>Item Description</th><th>Brand Name</th><th>Qty</th></tr></thead>
+          <tbody id="itemRows"></tbody>
+        </table>
+
+        <section class="proposal-section">
+          <h3>Fybron Scope of Supply & Work</h3>
+          <p class="scope-note" id="outScope"></p>
+          <div class="scope-grid">
+            <div>
+              <h4>Pool Supply & Delivery</h4>
+              <ul>
+                <li>Supply and deliver the approved factory-manufactured Fybron fibreglass pool shell/panel system as per approved specifications.</li>
+                <li>Safe transportation and handling of all supplied materials.</li>
+                <li>Minor handling marks during transportation or installation shall be rectified.</li>
+              </ul>
+            </div>
+            <div>
+              <h4>Pool Finish</h4>
+              <ul>
+                <li>Interior: smooth premium pigmented gelcoat finish for durability and easy maintenance.</li>
+                <li>Exterior: protective flow-coat finish for enhanced structural durability.</li>
+              </ul>
+            </div>
+            <div>
+              <h4>MEP Works</h4>
+              <ul>
+                <li>Supply and installation of pool circulation pump and filtration system.</li>
+                <li>PVC pipelines and fittings, underwater lights if included in BOQ, and electrical control panel connections.</li>
+              </ul>
+            </div>
+            <div>
+              <h4>Installation, Testing & Handover</h4>
+              <ul>
+                <li>Pool positioning, installation, and on-site technical supervision.</li>
+                <li>Testing and commissioning of the complete pool system.</li>
+                <li>Handover of the pool in fully functional and ready-to-use condition.</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <section class="proposal-section">
+          <h3>Client / Contractor Scope</h3>
+          <div class="scope-grid">
+            <div>
+              <h4>Site Preparation & Civil Works</h4>
+              <ul>
+                <li>Site clearing, excavation, and disposal of excavated material.</li>
+                <li>Construction of minimum 100 mm RCC/PCC pool bed/foundation as per approved drawings.</li>
+                <li>Retaining walls, structural supports, M-sand, and approved backfilling materials where required.</li>
+              </ul>
+            </div>
+            <div>
+              <h4>Utilities & Site Arrangements</h4>
+              <ul>
+                <li>Electrical power supply and electrical points inside the pump room.</li>
+                <li>Adequate water supply for testing and pool filling.</li>
+                <li>Pump room construction and waterproof flooring where applicable.</li>
+              </ul>
+            </div>
+            <div>
+              <h4>Finishing Works</h4>
+              <ul>
+                <li>Pool decking, coping, external finishing, aesthetic works, and landscaping.</li>
+                <li>External stairs, pathways, cladding, changing rooms, and showers if applicable.</li>
+              </ul>
+            </div>
+            <div>
+              <h4>Coordination & Site Management</h4>
+              <ul>
+                <li>Coordination with civil contractors and related agencies.</li>
+                <li>Timely completion of preparatory works to maintain project schedule.</li>
+                <li>Site access arrangements, labour coordination, and local permissions.</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <section class="proposal-section notes-section">
+          <h3>Notes</h3>
+          <p id="outNotes"></p>
+          <p>We trust that the above details meet your requirements. The quoted prices are competitive and valid for a period of fifteen days from the date of this proposal. GST is not included and will be charged additionally as applicable at the time of invoicing.</p>
+          <p>Kindly review and confirm the project details before approval, as changes cannot be accommodated once production begins. In the event of cancellation, the advance will be adjusted against work completed, and any eligible refund will be processed within 14 days. All legal matters will be subject to the seller's local jurisdiction.</p>
+        </section>
+
+        <section class="signature-grid">
+          <div>
+            <span>Prepared by</span>
+            <strong>Asritha T U</strong>
+            <p>Business Executive<br>Mob: +91 98473 99315</p>
+          </div>
+          <div>
+            <span>Approved by</span>
+            <strong>Krishna Chandran</strong>
+            <p>Sales Engineer<br>Mob: +91 9895 399306</p>
+          </div>
+        </section>
+
+        <footer class="proposal-footer">
+          <img class="quotation-footer-image" src="assets/image3.png" alt="Fybron Pools quotation footer">
+          <div class="footer-text">
+            <p>Factory: Mini Industrial Estate, Mararikulam North, Cherthala, Alappuzha, Kerala 688582</p>
+            <p>sales@fybron.in | www.fybron.in | +91 98473 99315</p>
+          </div>
+        </footer>
+      </section>
+    </main>
+    <script src="app.js"></script>
+  </body>
+</html>
+

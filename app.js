@@ -1,0 +1,283 @@
+﻿const form = document.querySelector("#proposalForm");
+const printButton = document.querySelector("#printProposal");
+
+const priceChart = [
+  { series: "Compact", length: 3, width: 1.5, depth: 1.2, mep: 120000, shell: 155000, price: 275000, tag: "" },
+  { series: "Compact", length: 4, width: 2, depth: 1.2, mep: 130000, shell: 260000, price: 390000, tag: "" },
+  { series: "Compact", length: 4, width: 2.75, depth: 1.2, mep: 140000, shell: 300000, price: 440000, tag: "Popular" },
+  { series: "Compact", length: 4.5, width: 2.5, depth: 1.2, mep: 160000, shell: 315000, price: 475000, tag: "" },
+  { series: "Family", length: 5, width: 2, depth: 1.2, mep: 170000, shell: 320000, price: 490000, tag: "" },
+  { series: "Family", length: 5, width: 2.75, depth: 1.2, mep: 185000, shell: 345000, price: 530000, tag: "" },
+  { series: "Family", length: 6, width: 2.75, depth: 1.2, mep: 185000, shell: 512000, price: 697000, tag: "" },
+  { series: "Family", length: 6, width: 3, depth: 1.2, mep: 190000, shell: 550000, price: 740000, tag: "" },
+  { series: "Family", length: 7, width: 2.75, depth: 1.2, mep: 190000, shell: 595000, price: 785000, tag: "" },
+  { series: "Premium", length: 8, width: 2.75, depth: 1.2, mep: 220000, shell: 749000, price: 969000, tag: "" },
+  { series: "Premium", length: 8, width: 4, depth: 1.2, mep: 255000, shell: 795000, price: 1050000, tag: "Best Value" },
+  { series: "Premium", length: 9, width: 3, depth: 1.2, mep: 265000, shell: 825000, price: 1090000, tag: "" },
+  { series: "Premium", length: 10, width: 4, depth: 1.2, mep: 280000, shell: 1000000, price: 1280000, tag: "" },
+  { series: "Premium", length: 10, width: 5, depth: 1.2, mep: 289000, shell: 1061000, price: 1350000, tag: "" },
+  { series: "Luxury", length: 9, width: 6, depth: 1.2, mep: 280000, shell: 1170000, price: 1450000, tag: "" },
+  { series: "Luxury", length: 10, width: 7, depth: 1.2, mep: 310000, shell: 1310000, price: 1620000, tag: "" },
+  { series: "Luxury", length: 12, width: 4, depth: 1.2, mep: 325000, shell: 1055000, price: 1380000, tag: "" },
+  { series: "Luxury", length: 12, width: 6, depth: 1.2, mep: 362000, shell: 1318000, price: 1680000, tag: "High Demand" },
+  { series: "Luxury", length: 15, width: 6, depth: 1.2, mep: 395000, shell: 1705000, price: 2100000, tag: "" },
+  { series: "Luxury", length: 16, width: 7, depth: 1.2, mep: 418000, shell: 2162000, price: 2580000, tag: "" }
+];
+
+const fields = {
+  clientName: document.querySelector("#clientName"),
+  location: document.querySelector("#location"),
+  proposalDate: document.querySelector("#proposalDate"),
+  quoteNo: document.querySelector("#quoteNo"),
+  length: document.querySelector("#length"),
+  width: document.querySelector("#width"),
+  depth: document.querySelector("#depth"),
+  unit: document.querySelector("#unit"),
+  poolType: document.querySelector("#poolType"),
+  baseRate: document.querySelector("#baseRate"),
+  gstRate: document.querySelector("#gstRate"),
+  shellUnitPrice: document.querySelector("#shellUnitPrice"),
+  installationUnitPrice: document.querySelector("#installationUnitPrice"),
+  mepUnitPrice: document.querySelector("#mepUnitPrice"),
+  includeGst: document.querySelector("#includeGst"),
+  scope: document.querySelector("#scope"),
+  notes: document.querySelector("#notes")
+};
+
+const output = {
+  visualLabel: document.querySelector("#visualLabel"),
+  chartMatch: document.querySelector("#chartMatch"),
+  surfaceArea: document.querySelector("#surfaceArea"),
+  volume: document.querySelector("#volume"),
+  estimate: document.querySelector("#estimate"),
+  proposalTitle: document.querySelector("#proposalTitle"),
+  outClient: document.querySelector("#outClient"),
+  outLocation: document.querySelector("#outLocation"),
+  outDate: document.querySelector("#outDate"),
+  outQuoteNo: document.querySelector("#outQuoteNo"),
+  proposalIntro: document.querySelector("#proposalIntro"),
+  poolImageSize: document.querySelector("#poolImageSize"),
+  specList: document.querySelector("#specList"),
+  technicalSummary: document.querySelector("#technicalSummary"),
+  quoteRows: document.querySelector("#quoteRows"),
+  amountWords: document.querySelector("#amountWords"),
+  grandTotal: document.querySelector("#grandTotal"),
+  itemRows: document.querySelector("#itemRows"),
+  outScope: document.querySelector("#outScope"),
+  outNotes: document.querySelector("#outNotes")
+};
+
+const INR = new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 });
+const decimalFormat = new Intl.NumberFormat("en-IN", { maximumFractionDigits: 1 });
+const measurementFormat = new Intl.NumberFormat("en-IN", { maximumFractionDigits: 2 });
+
+function formatMeasurement(value) {
+  return measurementFormat.format(Number.parseFloat(Number(value).toFixed(2)));
+}
+
+function asNumber(input, fallback = 0) {
+  const value = Number.parseFloat(input.value);
+  return Number.isFinite(value) ? value : fallback;
+}
+
+function toMeters(value, unit) {
+  return unit === "ft" ? value * 0.3048 : value;
+}
+
+function sqFtFrom(length, width, unit) {
+  return length * width * (unit === "ft" ? 1 : 10.7639);
+}
+
+function litresFrom(length, width, depth, unit) {
+  return unit === "ft" ? length * width * depth * 28.3168 : length * width * depth * 1000;
+}
+
+function formatDate(dateValue) {
+  const date = dateValue ? new Date(`${dateValue}T00:00:00`) : new Date();
+  return new Intl.DateTimeFormat("en-IN", { day: "2-digit", month: "long", year: "numeric" }).format(date);
+}
+
+function closestChart(lengthM, widthM, depthM, areaSqFt, baseRate) {
+  const scored = priceChart.map((row) => {
+    const rowArea = row.length * row.width * 10.7639;
+    const dimensionScore = Math.abs(row.length - lengthM) + Math.abs(row.width - widthM) + Math.abs(row.depth - depthM) * 1.5;
+    const areaScore = Math.abs(rowArea - areaSqFt) / 100;
+    return { ...row, score: dimensionScore + areaScore, rowArea };
+  }).sort((a, b) => a.score - b.score);
+
+  const nearest = scored[0];
+  const exact = Math.abs(nearest.length - lengthM) <= 0.06 && Math.abs(nearest.width - widthM) <= 0.06 && Math.abs(nearest.depth - depthM) <= 0.06;
+
+  if (exact) return { ...nearest, exact: true, estimated: false };
+
+  const fallbackTotal = Math.round(areaSqFt * baseRate);
+  const mepRatio = nearest.mep / nearest.price;
+  const mep = Math.round(fallbackTotal * mepRatio / 1000) * 1000;
+  const shell = Math.max(0, fallbackTotal - mep);
+  return { ...nearest, exact: false, estimated: true, mep, shell, price: fallbackTotal };
+}
+
+function accessorySchedule(lengthM, areaSqFt) {
+  const filterDia = areaSqFt <= 170 ? 500 : areaSqFt <= 300 ? 600 : areaSqFt <= 520 ? 750 : 900;
+  const sandQty = filterDia === 500 ? 150 : filterDia === 600 ? 200 : filterDia === 750 ? 300 : 450;
+  const lights = areaSqFt <= 160 ? 2 : areaSqFt <= 380 ? 4 : areaSqFt <= 700 ? 6 : 8;
+  const vacuumHose = Math.max(7, Math.round(lengthM));
+  const pump = areaSqFt <= 520 ? "1.5 HP / 1 Phase" : "2 HP / 1 Phase";
+
+  return [
+    { photo: "filter", item: `Alfa Aerosol Vessel ${filterDia} DIA [Pressure sand filter]`, brand: "Alfa", qty: "1 No" },
+    { photo: "sand", item: "Purity Sand", brand: "Purity", qty: `${sandQty} Kg` },
+    { photo: "light", item: "Pool Light (12V x 24W)", brand: "Fybron", qty: `${lights} No` },
+    { photo: "drive", item: "LED Driver", brand: "Fybron", qty: `${Math.ceil(lights / 2)} No` },
+    { photo: "pump", item: `Pool Pump ${pump}`, brand: "Fybron", qty: "1 No" },
+    { photo: "net", item: "Net with 5 micron mesh", brand: "Standard", qty: "1 No" },
+    { photo: "hose", item: "Vacuum Hose", brand: "Standard", qty: `${vacuumHose} M` },
+    { photo: "vacuum", item: "Vacuum Head", brand: "Standard", qty: "1 No" },
+    { photo: "point", item: "Vacuum Point", brand: "Fybron", qty: "1 No" },
+    { photo: "brush", item: "Brush", brand: "Standard", qty: "1 No" },
+    { photo: "ladder", item: "SS Ladder (4 Steps)", brand: "SS 304", qty: "1 No" },
+    { photo: "rod", item: "Telescopic Rod", brand: "Standard", qty: "1 No" },
+    { photo: "skimmer", item: "Skimmer Basket", brand: "Fybron", qty: "1 No" },
+    { photo: "eyeball", item: "Eye Ball", brand: "Fybron", qty: "3 Nos" },
+    { photo: "drain", item: "Main Drain Cover", brand: "Fybron", qty: "1 No" },
+    { photo: "pipe", item: "Plumbing Materials (plant room pipes, fittings, valves, PVC pipe)", brand: "PVC", qty: "Required" },
+    { photo: "kit", item: "Testing Kit for pH and Chlorine", brand: "Standard", qty: "1 No" }
+  ];
+}
+
+function numberToWords(value) {
+  const ones = ["", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen"];
+  const tens = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"];
+  const underHundred = (num) => num < 20 ? ones[num] : `${tens[Math.floor(num / 10)]}${num % 10 ? ` ${ones[num % 10]}` : ""}`;
+  const underThousand = (num) => {
+    const hundred = Math.floor(num / 100);
+    const rest = num % 100;
+    return `${hundred ? `${ones[hundred]} Hundred` : ""}${hundred && rest ? " " : ""}${rest ? underHundred(rest) : ""}`.trim();
+  };
+
+  let num = Math.round(Math.max(0, value));
+  if (num === 0) return "Zero";
+
+  const parts = [];
+  const crore = Math.floor(num / 10000000);
+  num %= 10000000;
+  const lakh = Math.floor(num / 100000);
+  num %= 100000;
+  const thousand = Math.floor(num / 1000);
+  num %= 1000;
+
+  if (crore) parts.push(`${underThousand(crore)} Crore`);
+  if (lakh) parts.push(`${underThousand(lakh)} Lakh`);
+  if (thousand) parts.push(`${underThousand(thousand)} Thousand`);
+  if (num) parts.push(underThousand(num));
+  return parts.join(" ");
+}
+
+function wordsHint(amount) {
+  return `Amount in words: ${numberToWords(amount)} Rupees Only`;
+}
+
+function rateFromAmount(amount, areaSqFt) {
+  return areaSqFt > 0 ? Math.round(amount / areaSqFt) : 0;
+}
+
+function render() {
+  const length = asNumber(fields.length, 0);
+  const width = asNumber(fields.width, 0);
+  const depth = asNumber(fields.depth, 0);
+  const unit = fields.unit.value;
+  const lengthM = toMeters(length, unit);
+  const widthM = toMeters(width, unit);
+  const depthM = toMeters(depth, unit);
+  const areaSqFt = sqFtFrom(length, width, unit);
+  const volumeLitres = litresFrom(length, width, depth, unit);
+  const baseRate = asNumber(fields.baseRate, 0);
+  const gstRate = asNumber(fields.gstRate, 0);
+  const chart = closestChart(lengthM, widthM, depthM, areaSqFt, baseRate);
+  const defaultInstallation = Math.round(chart.shell * 0.18);
+  const defaultShell = Math.max(0, chart.shell - defaultInstallation);
+  const shellAmount = asNumber(fields.shellUnitPrice, 0) > 0 ? asNumber(fields.shellUnitPrice, 0) : defaultShell;
+  const installationAmount = asNumber(fields.installationUnitPrice, 0) > 0 ? asNumber(fields.installationUnitPrice, 0) : defaultInstallation;
+  const mepAmount = asNumber(fields.mepUnitPrice, 0) > 0 ? asNumber(fields.mepUnitPrice, 0) : chart.mep;
+  const adjustedSubtotal = shellAmount + installationAmount + mepAmount;
+  const gst = Math.round(adjustedSubtotal * (gstRate / 100));
+  const grandTotal = fields.includeGst.checked ? adjustedSubtotal + gst : adjustedSubtotal;
+  const dimensions = `${formatMeasurement(length)} x ${formatMeasurement(width)} x ${formatMeasurement(depth)} ${unit}`;
+  const dimensionsM = `${formatMeasurement(lengthM)} x ${formatMeasurement(widthM)} x ${formatMeasurement(depthM)} m`;
+  const areaText = `${decimalFormat.format(areaSqFt)} SQFT`;
+  const volumeText = `${decimalFormat.format(Math.round(volumeLitres))} litres`;
+  const poolType = fields.poolType.value;
+  const client = fields.clientName.value.trim() || "Client";
+  const location = fields.location.value.trim() || "Project site";
+  const matchText = `${chart.series} ${chart.length} x ${chart.width} x ${chart.depth} m${chart.tag ? ` (${chart.tag})` : ""}`;
+
+  output.visualLabel.textContent = dimensions;
+  output.chartMatch.textContent = chart.exact ? matchText : `Estimated from ${matchText}`;
+  output.surfaceArea.textContent = areaText;
+  output.volume.textContent = volumeText;
+  output.estimate.textContent = INR.format(grandTotal);
+  output.proposalTitle.textContent = `Proposal for Fybron ${poolType} - ${dimensions}`;
+  output.outClient.textContent = client;
+  output.outLocation.textContent = location;
+  output.outDate.textContent = formatDate(fields.proposalDate.value);
+  output.outQuoteNo.textContent = fields.quoteNo.value.trim() || "Draft";
+  output.proposalIntro.innerHTML = `Dear Sir,<br><br>Thank you for your interest in Fybron Composite Pools. With reference to your enquiry for the supply and installation of a custom-made fibreglass pool at your site in ${location}, we are pleased to submit our quotation for ${client}. Please find the attached proposal detailing the scope and pricing. Should you need any clarification or technical assistance, we will be glad to assist.<br><br>Warm regards,<br>Team Fybron`;
+  output.poolImageSize.textContent = `Size: ${dimensions}`;
+  output.specList.innerHTML = `
+    <dt>Pool Type</dt><dd>${poolType}</dd>
+    <dt>Shape</dt><dd>Rectangular</dd>
+    <dt>Dimensions</dt><dd>${dimensions}${unit === "ft" ? ` (${dimensionsM})` : ""}</dd>
+    <dt>Pool Inner Finish</dt><dd>Pigmented smooth gelcoat finish</dd>
+    <dt>Pool System</dt><dd>Skimmer type</dd>
+    <dt>Brand</dt><dd>FYBRON</dd>
+    <dt>Pool Area</dt><dd>${areaText}</dd>
+    <dt>Pool Volume</dt><dd>${volumeText}</dd>
+  `;
+
+  output.technicalSummary.innerHTML = `
+    <li>Pool Shell: factory-manufactured fibreglass pool shell.</li>
+    <li>Pool Colour: Pale Blue.</li>
+    <li>Pool Area: ${areaText}.</li>
+    <li>Pool Volume: ${volumeText}.</li>
+    <li>Interior Finish: pigmented smooth gelcoat finish, ensuring comfort, durability, and long-lasting performance.</li>
+    <li>Exterior Finish: rough flow-coat finish for enhanced bonding and structural stability.</li>
+    <li>Project execution is subject to site readiness, approved specifications, and agreed payment terms.</li>
+  `;
+
+  output.quoteRows.innerHTML = `
+    <tr><td>Fibreglass Inground Pool Shell<br><small>Size: ${dimensions}</small></td><td>${INR.format(shellAmount)}</td><td>1</td><td>${INR.format(shellAmount)}</td></tr>
+    <tr><td>Positioning, Installation, Testing & Pool commissioning</td><td>${INR.format(installationAmount)}</td><td>1</td><td>${INR.format(installationAmount)}</td></tr>
+    <tr><td>Pumps, Filter, Pipelines, Electrification (MEP) & Pool Accessories</td><td>${INR.format(mepAmount)}</td><td>1</td><td>${INR.format(mepAmount)}</td></tr>
+    <tr><td><strong>Total</strong></td><td></td><td></td><td><strong>${INR.format(adjustedSubtotal)}</strong></td></tr>
+    ${fields.includeGst.checked ? `<tr><td>GST</td><td>${decimalFormat.format(gstRate)}%</td><td></td><td>${INR.format(gst)}</td></tr>` : ""}
+  `;
+
+  output.amountWords.textContent = wordsHint(grandTotal);
+  output.grandTotal.textContent = INR.format(grandTotal);
+  output.itemRows.innerHTML = accessorySchedule(lengthM, areaSqFt).map((row) => `
+    <tr>
+      <td><div class="item-photo ${row.photo}" aria-label="${row.item} photo placeholder"></div></td>
+      <td>${row.item}</td>
+      <td>${row.brand}</td>
+      <td>${row.qty}</td>
+    </tr>
+  `).join("");
+  output.outScope.textContent = fields.scope.value.trim();
+  output.outNotes.textContent = fields.notes.value.trim();
+}
+
+function setToday() {
+  const today = new Date();
+  const timezoneOffset = today.getTimezoneOffset() * 60000;
+  fields.proposalDate.value = new Date(today - timezoneOffset).toISOString().slice(0, 10);
+}
+
+setToday();
+form.addEventListener("input", render);
+form.addEventListener("change", render);
+printButton.addEventListener("click", () => window.print());
+render();
+
+
+
+
