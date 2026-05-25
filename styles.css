@@ -43,6 +43,12 @@ button, input, select, textarea { font: inherit; }
   background: linear-gradient(90deg, var(--brand-dark), var(--brand));
   color: white;
 }
+.action-bar {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: flex-end;
+}
 .eyebrow {
   margin: 0 0 4px;
   color: rgba(255, 255, 255, 0.74);
@@ -64,6 +70,14 @@ h3 { font-size: 15px; margin: 22px 0 8px; color: var(--brand-dark); }
   cursor: pointer;
 }
 .icon-button:hover { background: rgba(255, 255, 255, 0.2); }
+.icon-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: rgba(255, 255, 255, 0.08);
+}
+.icon-button:disabled:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
 .topbar-logo {
   width: 108px;
   max-width: 24vw;
@@ -182,11 +196,19 @@ input:focus, select:focus, textarea:focus { border-color: var(--brand); box-shad
   overflow: hidden;
   background: #fbfcfa;
 }
-.pool-image-card img {
-  display: block;
+.pool-diagram {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 100%;
-  aspect-ratio: 16 / 7;
-  object-fit: cover;
+  min-height: 350px;
+  padding: 20px;
+  background: white;
+}
+.pool-diagram svg {
+  max-width: 100%;
+  height: auto;
+  display: block;
 }
 .pool-image-card figcaption {
   display: flex;
@@ -343,10 +365,17 @@ th { background: #eff6f4; color: var(--brand-dark); }
   .proposal { box-shadow: none; border: 0; border-radius: 0; padding: 0; min-height: 277mm; display: flex; flex-direction: column; }
   .quotation-letterhead { margin-bottom: 10mm; padding-bottom: 4mm; }
   .proposal-footer { margin-top: auto; padding-top: 6mm; }
-  .pool-image-card img { aspect-ratio: 16 / 5; }
-  .proposal-section { margin: 12px 0; }
+  .pool-image-card { margin: 8px 0; border: none; background: white; break-inside: avoid; break-before: auto; overflow: visible; }
+  .pool-diagram { min-height: auto; max-height: none; padding: 8px; break-inside: avoid; overflow: visible; display: block; }
+  .pool-diagram svg { max-width: 100%; height: auto; display: block; overflow: visible; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .pool-image-card figcaption { padding: 4px 6px; font-size: 10px; }
+  .proposal-section { margin: 6px 0; break-inside: avoid; }
+  .proposal-section h3 { margin: 4px 0 6px 0; break-after: avoid; }
+  .proposal-section ul { margin: 4px 0; padding-left: 16px; }
+  .proposal-section li { margin: 2px 0; }
   .scope-grid { grid-template-columns: 1fr 1fr; gap: 8px 12px; }
-  .items-table { font-size: 12px; }
+  .items-table { font-size: 11px; }
+  .quote-table { font-size: 11px; margin: 4px 0; }
   h3 { break-after: avoid; }
   tr { break-inside: avoid; }
 }

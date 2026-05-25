@@ -274,6 +274,130 @@ function render() {
   `).join("");
   output.outScope.textContent = fields.scope.value.trim();
   output.outNotes.textContent = fields.notes.value.trim();
+  
+  // Update pool diagram
+  renderPoolDiagram(lengthM, widthM, depthM, dimensions);
+}
+
+function renderPoolDiagram(length, width, depth, dimensionLabel) {
+  const diagramContainer = document.querySelector("#poolDiagram");
+  
+  // Use larger scale for print quality - 1 unit = 1 pixel in SVG
+  const scale = 60; // 60px per meter for print quality
+  const scaledLength = length * scale;
+  const scaledWidth = width * scale;
+  const scaledDepth = depth * scale;
+  
+  // Layout constants
+  const topViewPadding = 60;
+  const sideViewPadding = 60;
+  const viewGap = 80;
+  const bottomPadding = 80;
+  
+  // Calculate dimensions
+  const topViewWidth = scaledLength + topViewPadding * 2;
+  const topViewHeight = scaledWidth + topViewPadding * 2 + 60; // Extra space for labels
+  
+  const sideViewWidth = scaledLength + sideViewPadding * 2;
+  const sideViewHeight = scaledDepth + sideViewPadding * 2 + 60; // Extra space for labels
+  
+  // Total SVG dimensions
+  const svgWidth = Math.max(topViewWidth, sideViewWidth) + 40;
+  const svgHeight = topViewHeight + sideViewHeight + viewGap + bottomPadding;
+  
+  // Calculate positions for centering
+  const topViewStartX = (svgWidth - topViewWidth) / 2;
+  const topViewStartY = 30;
+  
+  const sideViewStartX = (svgWidth - sideViewWidth) / 2;
+  const sideViewStartY = topViewStartY + topViewHeight + viewGap;
+  
+  // Pool positions
+  const topPoolX = topViewStartX + topViewPadding;
+  const topPoolY = topViewStartY + topViewPadding;
+  
+  const sidePoolX = sideViewStartX + sideViewPadding;
+  const sidePoolY = sideViewStartY + sideViewPadding;
+  
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${svgWidth} ${svgHeight}" width="${svgWidth}" height="${svgHeight}" style="max-width: 100%; height: auto; display: block; background: white; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
+      <defs>
+        <style>
+          .pool-label { font-family: system-ui, -apple-system, sans-serif; fill: #132126; font-weight: 600; }
+          .pool-dimension { font-size: 14px; fill: #116c67; }
+          .pool-depth-label { font-size: 14px; fill: #116c67; }
+          .pool-title { font-size: 13px; fill: #5f6d73; font-weight: 600; }
+          .dimension-line { stroke: #116c67; stroke-width: 1.5; }
+          .dimension-tick { stroke: #116c67; stroke-width: 1; }
+        </style>
+      </defs>
+      
+      <!-- ===== TOP-DOWN VIEW ===== -->
+      <g id="topDownView">
+        <!-- Pool shell outline -->
+        <rect x="${topPoolX}" y="${topPoolY}" width="${scaledLength}" height="${scaledWidth}" fill="#3aa9c7" opacity="0.15" stroke="#116c67" stroke-width="2.5"/>
+        
+        <!-- Water fill -->
+        <rect x="${topPoolX + 2}" y="${topPoolY + 2}" width="${scaledLength - 4}" height="${scaledWidth - 4}" fill="#3aa9c7" opacity="0.25" stroke="none"/>
+        
+        <!-- Corner circles -->
+        <circle cx="${topPoolX}" cy="${topPoolY}" r="3" fill="#116c67"/>
+        <circle cx="${topPoolX + scaledLength}" cy="${topPoolY}" r="3" fill="#116c67"/>
+        <circle cx="${topPoolX}" cy="${topPoolY + scaledWidth}" r="3" fill="#116c67"/>
+        <circle cx="${topPoolX + scaledLength}" cy="${topPoolY + scaledWidth}" r="3" fill="#116c67"/>
+        
+        <!-- LENGTH DIMENSION (Top) -->
+        <line x1="${topPoolX}" y1="${topPoolY - 24}" x2="${topPoolX + scaledLength}" y2="${topPoolY - 24}" class="dimension-line"/>
+        <line x1="${topPoolX}" y1="${topPoolY - 30}" x2="${topPoolX}" y2="${topPoolY - 18}" class="dimension-tick"/>
+        <line x1="${topPoolX + scaledLength}" y1="${topPoolY - 30}" x2="${topPoolX + scaledLength}" y2="${topPoolY - 18}" class="dimension-tick"/>
+        <text x="${topPoolX + scaledLength / 2}" y="${topPoolY - 32}" text-anchor="middle" class="pool-label pool-dimension">${formatMeasurement(length)} m</text>
+        
+        <!-- WIDTH DIMENSION (Left) -->
+        <line x1="${topPoolX - 24}" y1="${topPoolY}" x2="${topPoolX - 24}" y2="${topPoolY + scaledWidth}" class="dimension-line"/>
+        <line x1="${topPoolX - 30}" y1="${topPoolY}" x2="${topPoolX - 18}" y2="${topPoolY}" class="dimension-tick"/>
+        <line x1="${topPoolX - 30}" y1="${topPoolY + scaledWidth}" x2="${topPoolX - 18}" y2="${topPoolY + scaledWidth}" class="dimension-tick"/>
+        <text x="${topPoolX - 48}" y="${topPoolY + scaledWidth / 2}" text-anchor="middle" class="pool-label pool-dimension" transform="rotate(-90 ${topPoolX - 48} ${topPoolY + scaledWidth / 2})">${formatMeasurement(width)} m</text>
+        
+        <!-- Title -->
+        <text x="${topViewStartX + topViewWidth / 2}" y="${topPoolY + scaledWidth + 50}" text-anchor="middle" class="pool-label pool-title">TOP-DOWN VIEW</text>
+      </g>
+      
+      <!-- ===== SIDE ELEVATION VIEW ===== -->
+      <g id="sideView">
+        <!-- Pool shell outline (side view) -->
+        <rect x="${sidePoolX}" y="${sidePoolY}" width="${scaledLength}" height="${scaledDepth}" fill="#3aa9c7" opacity="0.15" stroke="#116c67" stroke-width="2.5"/>
+        
+        <!-- Water fill (side) -->
+        <rect x="${sidePoolX + 2}" y="${sidePoolY + 2}" width="${scaledLength - 4}" height="${scaledDepth - 4}" fill="#3aa9c7" opacity="0.25" stroke="none"/>
+        
+        <!-- Bottom line (ground) -->
+        <line x1="${sidePoolX}" y1="${sidePoolY + scaledDepth}" x2="${sidePoolX + scaledLength}" y2="${sidePoolY + scaledDepth}" stroke="#5f6d73" stroke-width="1" stroke-dasharray="4,2"/>
+        
+        <!-- Corner circles -->
+        <circle cx="${sidePoolX}" cy="${sidePoolY}" r="3" fill="#116c67"/>
+        <circle cx="${sidePoolX + scaledLength}" cy="${sidePoolY}" r="3" fill="#116c67"/>
+        <circle cx="${sidePoolX}" cy="${sidePoolY + scaledDepth}" r="3" fill="#116c67"/>
+        <circle cx="${sidePoolX + scaledLength}" cy="${sidePoolY + scaledDepth}" r="3" fill="#116c67"/>
+        
+        <!-- LENGTH DIMENSION (Bottom of side view) -->
+        <line x1="${sidePoolX}" y1="${sidePoolY + scaledDepth + 24}" x2="${sidePoolX + scaledLength}" y2="${sidePoolY + scaledDepth + 24}" class="dimension-line"/>
+        <line x1="${sidePoolX}" y1="${sidePoolY + scaledDepth + 30}" x2="${sidePoolX}" y2="${sidePoolY + scaledDepth + 18}" class="dimension-tick"/>
+        <line x1="${sidePoolX + scaledLength}" y1="${sidePoolY + scaledDepth + 30}" x2="${sidePoolX + scaledLength}" y2="${sidePoolY + scaledDepth + 18}" class="dimension-tick"/>
+        <text x="${sidePoolX + scaledLength / 2}" y="${sidePoolY + scaledDepth + 42}" text-anchor="middle" class="pool-label pool-dimension">${formatMeasurement(length)} m</text>
+        
+        <!-- DEPTH DIMENSION (Right) -->
+        <line x1="${sidePoolX + scaledLength + 24}" y1="${sidePoolY}" x2="${sidePoolX + scaledLength + 24}" y2="${sidePoolY + scaledDepth}" class="dimension-line"/>
+        <line x1="${sidePoolX + scaledLength + 30}" y1="${sidePoolY}" x2="${sidePoolX + scaledLength + 18}" y2="${sidePoolY}" class="dimension-tick"/>
+        <line x1="${sidePoolX + scaledLength + 30}" y1="${sidePoolY + scaledDepth}" x2="${sidePoolX + scaledLength + 18}" y2="${sidePoolY + scaledDepth}" class="dimension-tick"/>
+        <text x="${sidePoolX + scaledLength + 48}" y="${sidePoolY + scaledDepth / 2}" text-anchor="middle" class="pool-label pool-depth-label" transform="rotate(90 ${sidePoolX + scaledLength + 48} ${sidePoolY + scaledDepth / 2})">${formatMeasurement(depth)} m</text>
+        
+        <!-- Title -->
+        <text x="${sideViewStartX + sideViewWidth / 2}" y="${sidePoolY + scaledDepth + 50}" text-anchor="middle" class="pool-label pool-title">SIDE ELEVATION VIEW</text>
+      </g>
+    </svg>
+  `;
+  
+  diagramContainer.innerHTML = svg;
 }
 
 function setToday() {
@@ -360,8 +484,9 @@ async function saveProposalToSupabase() {
       return;
     }
 
-    // Show success message
+    // Show success message and enable print button
     showSuccessMessage("Proposal saved successfully!");
+    printButton.disabled = false;
     console.log("Saved quotation:", data);
   } catch (err) {
     console.error("Error:", err);
@@ -428,6 +553,10 @@ function showSuccessMessage(message) {
   }, 4000);
 }
 
+// Initialize print button as disabled until proposal is saved
+printButton.disabled = true;
+
 saveButton.addEventListener("click", saveProposalToSupabase);
+printButton.addEventListener("click", () => window.print());
 
 render();

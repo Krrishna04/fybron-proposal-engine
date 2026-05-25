@@ -16,8 +16,10 @@
             <h1>Pool Proposal Maker</h1>
           </div>
           <img class="topbar-logo" src="assets/fybron-logo.jpeg" alt="Fybron Pools">
-          <button class="icon-button" id="saveProposal" type="button" aria-label="Save proposal to database" title="Save proposal">Save</button>
-          <button class="icon-button" id="printProposal" type="button" aria-label="Print proposal" title="Print proposal">Print</button>
+          <div class="action-bar">
+            <button class="icon-button" id="printProposal" type="button" aria-label="Print proposal" title="Print proposal">Print</button>
+            <button class="icon-button" id="saveProposal" type="button" aria-label="Save proposal to database" title="Save proposal">Save</button>
+          </div>
         </header>
 
         <div class="builder-grid">
@@ -94,8 +96,8 @@
         <p class="lead" id="proposalIntro"></p>
 
         <figure class="pool-image-card">
-          <img src="assets/fybron-pool-image.png" alt="Fybron swimming pool visual">
-          <figcaption><span>Pool image</span><strong id="poolImageSize">Size: 6 x 2.75 x 1.2 m</strong></figcaption>
+          <div id="poolDiagram" class="pool-diagram"></div>
+          <figcaption><span>Pool schematic</span><strong id="poolImageSize">Size: 6 x 2.75 x 1.2 m</strong></figcaption>
         </figure>
 
         <div class="proposal-columns">
