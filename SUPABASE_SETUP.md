@@ -11,7 +11,8 @@ This quotation app has been successfully connected to Supabase. Follow these ste
 ### 2. **app.js**
 - Initialized Supabase client at the top of the file
 - Added `collectQuotationData()` function to gather all form data
-- Added `saveProposalToSupabase()` function to insert data into the database
+- Added quote search, retrieval, edit mode, print-from-search, and save/update logic
+- Added `saveProposalToSupabase()` function to insert or update data in the database
 - Added `showSuccessMessage()` function to display success notifications
 - Added event listener to the Save button for form submission
 
@@ -30,9 +31,12 @@ In your Supabase dashboard, go to SQL Editor and run this query:
 CREATE TABLE quotations (
   id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
   client_name VARCHAR(255),
+  phone VARCHAR(50),
   project_location VARCHAR(255),
   proposal_date DATE,
   quote_number VARCHAR(50),
+  validity_days NUMERIC,
+  valid_until DATE,
   pool_length NUMERIC,
   pool_width NUMERIC,
   pool_depth NUMERIC,
@@ -51,9 +55,35 @@ CREATE TABLE quotations (
   include_gst BOOLEAN,
   scope TEXT,
   notes TEXT,
+  prepared_by VARCHAR(255),
+  approved_by VARCHAR(255),
+  prepared_by_name VARCHAR(255),
+  prepared_by_designation VARCHAR(255),
+  prepared_by_phone VARCHAR(50),
+  approved_by_name VARCHAR(255),
+  approved_by_designation VARCHAR(255),
+  approved_by_phone VARCHAR(50),
   created_at TIMESTAMP WITH TIME ZONE,
+  last_modified TIMESTAMP WITH TIME ZONE,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+```
+
+If your table already exists, add the newer columns with:
+
+```sql
+ALTER TABLE quotations ADD COLUMN IF NOT EXISTS phone VARCHAR(50);
+ALTER TABLE quotations ADD COLUMN IF NOT EXISTS validity_days NUMERIC;
+ALTER TABLE quotations ADD COLUMN IF NOT EXISTS valid_until DATE;
+ALTER TABLE quotations ADD COLUMN IF NOT EXISTS prepared_by VARCHAR(255);
+ALTER TABLE quotations ADD COLUMN IF NOT EXISTS approved_by VARCHAR(255);
+ALTER TABLE quotations ADD COLUMN IF NOT EXISTS prepared_by_name VARCHAR(255);
+ALTER TABLE quotations ADD COLUMN IF NOT EXISTS prepared_by_designation VARCHAR(255);
+ALTER TABLE quotations ADD COLUMN IF NOT EXISTS prepared_by_phone VARCHAR(50);
+ALTER TABLE quotations ADD COLUMN IF NOT EXISTS approved_by_name VARCHAR(255);
+ALTER TABLE quotations ADD COLUMN IF NOT EXISTS approved_by_designation VARCHAR(255);
+ALTER TABLE quotations ADD COLUMN IF NOT EXISTS approved_by_phone VARCHAR(50);
+ALTER TABLE quotations ADD COLUMN IF NOT EXISTS last_modified TIMESTAMP WITH TIME ZONE;
 ```
 
 ### Step 3: Enable Row Level Security (Optional but Recommended)
@@ -64,6 +94,15 @@ ALTER TABLE quotations ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "allow_insert" ON quotations
   FOR INSERT TO anon
+  WITH CHECK (true);
+
+CREATE POLICY "allow_select" ON quotations
+  FOR SELECT TO anon
+  USING (true);
+
+CREATE POLICY "allow_update" ON quotations
+  FOR UPDATE TO anon
+  USING (true)
   WITH CHECK (true);
 ```
 
@@ -85,6 +124,8 @@ With your actual credentials from the Supabase dashboard:
 2. Click the **Save** button in the top bar
 3. A success message will appear if the data is saved successfully
 4. Check your Supabase dashboard to verify the data was inserted
+5. Use **Find Existing Quote** to search by quote number, client name, or phone number
+6. Click **Open**, **Edit**, or **Print** from the results table
 
 ## Data Fields Saved
 
@@ -97,10 +138,11 @@ The following information is captured and saved:
 - Pricing details (base rate, GST, shell, installation, MEP)
 - Totals (subtotal, GST amount, grand total)
 - Scope of work and notes
+- Phone number, prepared/approved by names, designations, phones, and last modified timestamp
 
 ## Notes
 
-- The UI remains unchanged - only a Save button was added
+- The UI now includes a quote search panel and edit mode, while keeping the existing proposal layout
 - All calculations and proposal generation work as before
 - No frameworks were added - uses vanilla JavaScript
 - Error handling with user-friendly messages

@@ -23,14 +23,44 @@
         </header>
 
         <div class="builder-grid">
+          <section class="panel search-panel" aria-label="Quotation search">
+            <div class="section-title"><h2>Find Existing Quote</h2></div>
+            <div class="search-row">
+              <label>
+                <span>Search quote, client, or phone</span>
+                <input id="quoteSearch" type="search" placeholder="Example: Palm, QU2026, 9847">
+              </label>
+              <button class="secondary-button" id="searchQuotes" type="button">Search</button>
+              <button class="secondary-button muted-button" id="clearSearch" type="button">Clear</button>
+            </div>
+            <div class="search-status" id="searchStatus">Search by quote number, client name, or phone number.</div>
+            <div class="search-results-wrap" id="searchResultsWrap" hidden>
+              <table class="search-results-table">
+                <thead>
+                  <tr>
+                    <th>Quote Number</th>
+                    <th>Client Name</th>
+                    <th>Phone</th>
+                    <th>Proposal Date</th>
+                    <th>Grand Total</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="searchResults"></tbody>
+              </table>
+            </div>
+          </section>
+
           <form class="panel input-panel" id="proposalForm">
             <div class="section-title"><h2>Client</h2></div>
             <label><span>Client name</span><input id="clientName" type="text" value="Palm Grove Resort" autocomplete="organization"></label>
+            <label><span>Phone number</span><input id="phone" type="tel" value="" autocomplete="tel"></label>
             <label><span>Project location</span><input id="location" type="text" value="Alappuzha, Kerala" autocomplete="address-level2"></label>
             <div class="split">
               <label><span>Proposal date</span><input id="proposalDate" type="date"></label>
               <label><span>Quote number</span><input id="quoteNo" type="text" value="QU2026-MY-001"></label>
             </div>
+            <label><span>Quotation Validity (Days)</span><input id="validityDays" type="number" min="1" step="1" value="7"></label>
 
             <div class="section-title"><h2>Pool Size</h2></div>
             <div class="split">
@@ -50,6 +80,7 @@
                 <option value="Infinity Pool">Infinity Pool</option>
                 <option value="Indoor Pool">Indoor Pool</option>
                 <option value="Custom Pool">Custom Pool</option>
+                <option value="RCC Swimming Pool Waterproofing & Filtration System">RCC Swimming Pool Waterproofing & Filtration System</option>
               </select>
             </label>
 
@@ -65,7 +96,19 @@
             </div>
             <label class="check-row"><input id="includeGst" type="checkbox"><span>Show GST in total</span></label>
             <label><span>Included scope</span><textarea id="scope" rows="5">Supply and deliver the approved Fybron fibreglass pool shell to the project site. Install the complete pool system, including filtration equipment, pump, pipelines, electrification, underwater lighting, testing, commissioning, and handover in ready-to-use condition.</textarea></label>
-            <label><span>Notes / exclusions</span><textarea id="notes" rows="4">Civil excavation, 100 mm RCC pool bed, pump room, decking, coping, retaining walls, external finishing, electrical cabling beyond plant room, landscaping, statutory approvals, and labour-union related matters are excluded unless quoted separately.</textarea></label>
+            <label><span>Notes</span><textarea id="notes" rows="6">We trust that the above details meet your requirements. The quoted prices are competitive and valid for the specified quotation validity period from the date of this proposal.
+
+Kindly review and confirm the project details before approval, as changes cannot be accommodated once production begins. In the event of cancellation, the advance will be adjusted against work completed, and any eligible refund will be processed within 14 days. All legal matters will be subject to the seller's local jurisdiction.</textarea></label>
+
+            <div class="section-title"><h2>Prepared By</h2></div>
+            <label><span>Prepared By Name</span><input id="preparedByName" type="text" value="Krishna Chandran" autocomplete="name"></label>
+            <label><span>Prepared By Designation</span><input id="preparedByDesignation" type="text" value="Sales Engineer"></label>
+            <label><span>Prepared By Phone</span><input id="preparedByPhone" type="tel" value="+91 98953 99306" autocomplete="tel"></label>
+
+            <div class="section-title"><h2>Approved By</h2></div>
+            <label><span>Approved By Name</span><input id="approvedByName" type="text" value="Vipin M R" autocomplete="name"></label>
+            <label><span>Approved By Designation</span><input id="approvedByDesignation" type="text" value="Business Development Manager"></label>
+            <label><span>Approved By Phone</span><input id="approvedByPhone" type="tel" value="+91 98473 99306" autocomplete="tel"></label>
           </form>
 
           <aside class="panel summary-panel" aria-label="Live estimate">
@@ -90,6 +133,7 @@
           <div><span>Prepared for</span><strong id="outClient">Palm Grove Resort</strong></div>
           <div><span>Location</span><strong id="outLocation">Alappuzha, Kerala</strong></div>
           <div><span>Date</span><strong id="outDate">16 May 2026</strong></div>
+          <div><span>Valid Until</span><strong id="outValidUntil">23 May 2026</strong></div>
           <div><span>Quote #</span><strong id="outQuoteNo">QU2026-MY-001</strong></div>
         </div>
 
@@ -236,20 +280,18 @@
         <section class="proposal-section notes-section">
           <h3>Notes</h3>
           <p id="outNotes"></p>
-          <p>We trust that the above details meet your requirements. The quoted prices are competitive and valid for a period of fifteen days from the date of this proposal. GST is not included and will be charged additionally as applicable at the time of invoicing.</p>
-          <p>Kindly review and confirm the project details before approval, as changes cannot be accommodated once production begins. In the event of cancellation, the advance will be adjusted against work completed, and any eligible refund will be processed within 14 days. All legal matters will be subject to the seller's local jurisdiction.</p>
         </section>
 
         <section class="signature-grid">
           <div>
             <span>Prepared by</span>
-            <strong>Asritha T U</strong>
-            <p>Business Executive<br>Mob: +91 98473 99315</p>
+            <strong id="outPreparedByName">Krishna Chandran</strong>
+            <p><span id="outPreparedByDesignation">Sales Engineer</span><br>Mob: <span id="outPreparedByPhone">+91 98953 99306</span></p>
           </div>
           <div>
             <span>Approved by</span>
-            <strong>Krishna Chandran</strong>
-            <p>Sales Engineer<br>Mob: +91 9895 399306</p>
+            <strong id="outApprovedByName">Vipin M R</strong>
+            <p><span id="outApprovedByDesignation">Business Development Manager</span><br>Mob: <span id="outApprovedByPhone">+91 98473 99306</span></p>
           </div>
         </section>
 
