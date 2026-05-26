@@ -128,16 +128,77 @@ function litresFrom(length, width, depth, unit) {
   return unit === "ft" ? length * width * depth * 28.3168 : length * width * depth * 1000;
 }
 
+function formatSafeDate(value) {
+  // Safe date formatting that returns empty string for invalid/null dates
+  if (!value) return "";
+  
+  try {
+    // Try to parse the value
+    const dateStr = String(value).trim();
+    if (!dateStr) return "";
+    
+    // Create date from ISO format or YYYY-MM-DD format
+    const d = new Date(`${dateStr}T00:00:00`);
+    
+    // Check if date is valid
+    if (isNaN(d.getTime())) {
+      console.warn(`⚠️ Invalid date value: "${value}"`);
+      return "";
+    }
+    
+    return d.toISOString().split('T')[0];
+  } catch (error) {
+    console.warn(`⚠️ Error parsing date "${value}":`, error.message);
+    return "";
+  }
+}
+
 function formatDate(dateValue) {
-  const date = dateValue ? new Date(`${dateValue}T00:00:00`) : new Date();
-  return new Intl.DateTimeFormat("en-IN", { day: "2-digit", month: "long", year: "numeric" }).format(date);
+  try {
+    // If no value, return empty (don't use today's date by default)
+    if (!dateValue) return "";
+    
+    const dateStr = String(dateValue).trim();
+    if (!dateStr) return "";
+    
+    const date = new Date(`${dateStr}T00:00:00`);
+    
+    // Check if date is valid
+    if (isNaN(date.getTime())) {
+      console.warn(`⚠️ Invalid date value for formatting: "${dateValue}"`);
+      return "";
+    }
+    
+    return new Intl.DateTimeFormat("en-IN", { day: "2-digit", month: "long", year: "numeric" }).format(date);
+  } catch (error) {
+    console.warn(`⚠️ Error formatting date "${dateValue}":`, error.message);
+    return "";
+  }
 }
 
 function parseDateInput(dateValue) {
   if (!dateValue) return null;
-  const [year, month, day] = String(dateValue).split("-").map(Number);
-  if (!year || !month || !day) return null;
-  return new Date(year, month - 1, day);
+  
+  try {
+    const dateStr = String(dateValue).trim();
+    if (!dateStr) return null;
+    
+    const [year, month, day] = dateStr.split("-").map(Number);
+    if (!year || !month || !day) return null;
+    
+    const date = new Date(year, month - 1, day);
+    
+    // Validate the date
+    if (isNaN(date.getTime())) {
+      console.warn(`⚠️ Invalid date parsed: "${dateValue}"`);
+      return null;
+    }
+    
+    return date;
+  } catch (error) {
+    console.warn(`⚠️ Error parsing date "${dateValue}":`, error.message);
+    return null;
+  }
 }
 
 function dateInputValue(date) {
@@ -154,10 +215,27 @@ function addDaysToDate(dateValue, days) {
 }
 
 function daysBetweenDates(startDateValue, endDateValue) {
-  const start = parseDateInput(startDateValue);
-  const end = parseDateInput(endDateValue);
-  if (!start || !end) return null;
-  return Math.round((end - start) / 86400000);
+  try {
+    // Both dates must exist and be valid
+    if (!startDateValue || !endDateValue) {
+      console.log(`ℹ️ Missing dates for daysBetweenDates: start="${startDateValue}", end="${endDateValue}"`);
+      return null;
+    }
+    
+    const start = parseDateInput(startDateValue);
+    const end = parseDateInput(endDateValue);
+    
+    if (!start || !end) {
+      console.log(`ℹ️ Could not parse dates: start="${startDateValue}", end="${endDateValue}"`);
+      return null;
+    }
+    
+    const days = Math.round((end - start) / 86400000);
+    return days;
+  } catch (error) {
+    console.warn(`⚠️ Error calculating days between dates:`, error.message);
+    return null;
+  }
 }
 
 function closestChart(lengthM, widthM, depthM, areaSqFt, baseRate) {
@@ -640,42 +718,92 @@ function safeSet(input, value) {
 
 function dateForInput(value) {
   if (!value) return "";
-  return String(value).slice(0, 10);
+  
+  try {
+    const dateStr = String(value).trim();
+    if (!dateStr) return "";
+    
+    // Try to extract YYYY-MM-DD format from the value
+    const match = dateStr.match(/(\d{4})-(\d{2})-(\d{2})/);
+    if (!match) {
+      console.warn(`⚠️ Could not extract date from: "${value}"`);
+      return "";
+    }
+    
+    const [, year, month, day] = match;
+    const d = new Date(Number(year), Number(month) - 1, Number(day));
+    
+    // Validate
+    if (isNaN(d.getTime())) {
+      console.warn(`⚠️ Invalid date for input field: "${value}"`);
+      return "";
+    }
+    
+    return `${year}-${month}-${day}`;
+  } catch (error) {
+    console.warn(`⚠️ Error converting date for input "${value}":`, error.message);
+    return "";
+  }
 }
 
 function populateQuotationForm(quotation) {
-  const proposalDate = dateForInput(quotation.proposal_date);
-  const loadedValidityDays = Number.parseInt(quotation.validity_days, 10);
-  const fallbackValidityDays = daysBetweenDates(proposalDate, dateForInput(quotation.valid_until));
-  safeSet(fields.clientName, quotation.client_name);
-  safeSet(fields.phone, quotation.phone);
-  safeSet(fields.location, quotation.project_location);
-  safeSet(fields.proposalDate, proposalDate);
-  safeSet(fields.quoteNo, quotation.quote_number);
-  safeSet(fields.validityDays, Number.isFinite(loadedValidityDays) && loadedValidityDays > 0 ? loadedValidityDays : fallbackValidityDays || 7);
-  safeSet(fields.length, quotation.pool_length);
-  safeSet(fields.width, quotation.pool_width);
-  safeSet(fields.depth, quotation.pool_depth);
-  safeSet(fields.unit, quotation.measurement_unit || "m");
-  safeSet(fields.poolType, quotation.pool_type || "Fibreglass In-Ground Skimmer Pool");
-  safeSet(fields.baseRate, quotation.base_rate ?? 3900);
-  safeSet(fields.gstRate, quotation.gst_rate ?? 18);
-  safeSet(fields.shellUnitPrice, quotation.shell_price ?? 0);
-  safeSet(fields.installationUnitPrice, quotation.installation_price ?? 0);
-  safeSet(fields.mepUnitPrice, quotation.mep_price ?? 0);
-  fields.includeGst.checked = Boolean(quotation.include_gst);
-  safeSet(fields.scope, quotation.scope);
-  safeSet(fields.notes, quotation.notes);
-  safeSet(fields.preparedByName, quotation.prepared_by_name ?? quotation.prepared_by ?? "Krishna Chandran");
-  safeSet(fields.preparedByDesignation, quotation.prepared_by_designation ?? "Sales Engineer");
-  safeSet(fields.preparedByPhone, quotation.prepared_by_phone ?? "+91 98953 99306");
-  safeSet(fields.approvedByName, quotation.approved_by_name ?? quotation.approved_by ?? "Vipin M R");
-  safeSet(fields.approvedByDesignation, quotation.approved_by_designation ?? "Business Development Manager");
-  safeSet(fields.approvedByPhone, quotation.approved_by_phone ?? "+91 98473 99306");
+  try {
+    const proposalDate = dateForInput(quotation.proposal_date);
+    const loadedValidityDays = Number.parseInt(quotation.validity_days, 10);
+    
+    // Safely calculate fallback validity days - use null if dates are invalid
+    let fallbackValidityDays = null;
+    if (proposalDate && quotation.valid_until) {
+      const validUntil = dateForInput(quotation.valid_until);
+      if (proposalDate && validUntil) {
+        fallbackValidityDays = daysBetweenDates(proposalDate, validUntil);
+      }
+    }
+    
+    console.log(`📋 Loading quotation: "${quotation.quote_number || 'Draft'}" (validity_days from DB: ${loadedValidityDays}, calculated: ${fallbackValidityDays})`);
+    
+    safeSet(fields.clientName, quotation.client_name);
+    safeSet(fields.phone, quotation.phone);
+    safeSet(fields.location, quotation.project_location);
+    safeSet(fields.proposalDate, proposalDate);
+    safeSet(fields.quoteNo, quotation.quote_number);
+    
+    // Use loaded validity days if valid, otherwise use calculated, otherwise use default 7
+    const validityDays = Number.isFinite(loadedValidityDays) && loadedValidityDays > 0 
+      ? loadedValidityDays 
+      : (fallbackValidityDays || 7);
+    safeSet(fields.validityDays, validityDays);
+    
+    safeSet(fields.length, quotation.pool_length);
+    safeSet(fields.width, quotation.pool_width);
+    safeSet(fields.depth, quotation.pool_depth);
+    safeSet(fields.unit, quotation.measurement_unit || "m");
+    safeSet(fields.poolType, quotation.pool_type || "Fibreglass In-Ground Skimmer Pool");
+    safeSet(fields.baseRate, quotation.base_rate ?? 3900);
+    safeSet(fields.gstRate, quotation.gst_rate ?? 18);
+    safeSet(fields.shellUnitPrice, quotation.shell_price ?? 0);
+    safeSet(fields.installationUnitPrice, quotation.installation_price ?? 0);
+    safeSet(fields.mepUnitPrice, quotation.mep_price ?? 0);
+    fields.includeGst.checked = Boolean(quotation.include_gst);
+    safeSet(fields.scope, quotation.scope);
+    safeSet(fields.notes, quotation.notes);
+    safeSet(fields.preparedByName, quotation.prepared_by_name ?? quotation.prepared_by ?? "Krishna Chandran");
+    safeSet(fields.preparedByDesignation, quotation.prepared_by_designation ?? "Sales Engineer");
+    safeSet(fields.preparedByPhone, quotation.prepared_by_phone ?? "+91 98953 99306");
+    safeSet(fields.approvedByName, quotation.approved_by_name ?? quotation.approved_by ?? "Vipin M R");
+    safeSet(fields.approvedByDesignation, quotation.approved_by_designation ?? "Business Development Manager");
+    safeSet(fields.approvedByPhone, quotation.approved_by_phone ?? "+91 98473 99306");
 
-  setEditMode(quotation.id);
-  printButton.disabled = false;
-  render();
+    setEditMode(quotation.id);
+    printButton.disabled = false;
+    render();
+    
+    console.log(`✅ Form populated successfully`);
+  } catch (error) {
+    console.error(`❌ Error populating form:`, error);
+    // Still try to render to prevent complete crash
+    render();
+  }
 }
 
 function setSearchStatus(message, state = "") {
@@ -684,7 +812,9 @@ function setSearchStatus(message, state = "") {
 }
 
 function cleanSearchTerm(term) {
-  return term.trim().replace(/[%,()]/g, " ").replace(/\s+/g, " ");
+  // Preserve the search term but trim whitespace
+  // Don't remove % as it's used for ilike patterns
+  return term.trim();
 }
 
 function escapeHtml(value) {
@@ -694,23 +824,58 @@ function escapeHtml(value) {
 }
 
 function renderSearchResults(rows) {
-  searchResults.innerHTML = rows.map((row) => `
-    <tr>
-      <td>${escapeHtml(row.quote_number || "Draft")}</td>
-      <td>${escapeHtml(row.client_name || "Client")}</td>
-      <td>${escapeHtml(row.phone || "-")}</td>
-      <td>${row.proposal_date ? formatDate(row.proposal_date) : "-"}</td>
-      <td>${INR.format(Number(row.grand_total || 0))}</td>
-      <td>
-        <div class="result-actions">
-          <button type="button" data-action="open" data-id="${escapeHtml(row.id)}">Open</button>
-          <button type="button" data-action="edit" data-id="${escapeHtml(row.id)}">Edit</button>
-          <button type="button" data-action="print" data-id="${escapeHtml(row.id)}">Print</button>
-        </div>
-      </td>
-    </tr>
-  `).join("");
-  searchResultsWrap.hidden = rows.length === 0;
+  if (rows.length === 0) {
+    searchResults.innerHTML = '';
+    searchResultsWrap.hidden = true;
+    return;
+  }
+
+  try {
+    searchResults.innerHTML = rows.map((row) => {
+      try {
+        const dateStr = row.proposal_date ? formatDate(row.proposal_date) : "-";
+        return `
+          <tr>
+            <td>${escapeHtml(row.quote_number || "Draft")}</td>
+            <td>${escapeHtml(row.client_name || "Client")}</td>
+            <td>${escapeHtml(row.phone || "-")}</td>
+            <td>${dateStr}</td>
+            <td>${INR.format(Number(row.grand_total || 0))}</td>
+            <td>
+              <div class="result-actions">
+                <button type="button" data-action="open" data-id="${escapeHtml(row.id)}">Open</button>
+                <button type="button" data-action="edit" data-id="${escapeHtml(row.id)}">Edit</button>
+                <button type="button" data-action="print" data-id="${escapeHtml(row.id)}">Print</button>
+              </div>
+            </td>
+          </tr>
+        `;
+      } catch (rowError) {
+        console.error(`⚠️ Error rendering row for quote "${row.quote_number}":`, rowError);
+        return `
+          <tr>
+            <td>${escapeHtml(row.quote_number || "Draft")}</td>
+            <td>${escapeHtml(row.client_name || "Client")}</td>
+            <td>${escapeHtml(row.phone || "-")}</td>
+            <td>-</td>
+            <td>${INR.format(Number(row.grand_total || 0))}</td>
+            <td>
+              <div class="result-actions">
+                <button type="button" data-action="open" data-id="${escapeHtml(row.id)}">Open</button>
+                <button type="button" data-action="edit" data-id="${escapeHtml(row.id)}">Edit</button>
+                <button type="button" data-action="print" data-id="${escapeHtml(row.id)}">Print</button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }
+    }).join("");
+    searchResultsWrap.hidden = false;
+  } catch (error) {
+    console.error(`❌ Error rendering search results:`, error);
+    searchResults.innerHTML = '';
+    searchResultsWrap.hidden = true;
+  }
 }
 
 async function searchQuotations() {
@@ -720,30 +885,61 @@ async function searchQuotations() {
   }
 
   const term = cleanSearchTerm(searchInput.value);
-  if (term.length < 2) {
+  if (term.length < 1) {
     renderSearchResults([]);
-    setSearchStatus("Enter at least 2 characters to search.");
+    setSearchStatus("Enter search term to search.");
     return;
   }
 
   setSearchStatus("Searching...", "loading");
+  
+  // Log search debug info
+  console.log(`🔍 Search initiated for term: "${term}"`);
+  
+  // Construct the ilike pattern for case-insensitive partial matching
   const pattern = `%${term}%`;
-  const { data, error } = await supabaseClient
-    .from("quotations")
-    .select("id, quote_number, client_name, phone, proposal_date, grand_total, created_at")
-    .or(`quote_number.ilike.${pattern},client_name.ilike.${pattern},phone.ilike.${pattern}`)
-    .order("created_at", { ascending: false })
-    .limit(25);
+  console.log(`📋 Using ilike pattern: "${pattern}"`);
 
-  if (error) {
-    console.error("Search error:", error);
+  try {
+    // Build query with multiple OR conditions for all searchable fields
+    let query = supabaseClient
+      .from("quotations")
+      .select("id, quote_number, client_name, phone, proposal_date, grand_total, created_at")
+      .or(`quote_number.ilike.${pattern},client_name.ilike.${pattern},phone.ilike.${pattern}`)
+      .order("created_at", { ascending: false })
+      .limit(25);
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.error("❌ Search error:", error);
+      console.error("Error details:", error.message, error.code);
+      renderSearchResults([]);
+      setSearchStatus(`Search failed: ${error.message}`, "error");
+      return;
+    }
+
+    console.log(`✅ Search completed. Found ${data?.length || 0} result(s)`);
+    if (data && data.length > 0) {
+      console.table(data.map(d => ({
+        quote: d.quote_number,
+        client: d.client_name,
+        phone: d.phone
+      })));
+    }
+
+    renderSearchResults(data || []);
+    
+    if (data?.length === 0) {
+      setSearchStatus(`No quotations found for "${term}".`);
+    } else {
+      setSearchStatus(data?.length ? `${data.length} quotation${data.length === 1 ? "" : "s"} found.` : "No quotations found.");
+    }
+  } catch (error) {
+    console.error("❌ Search exception:", error);
     renderSearchResults([]);
-    setSearchStatus(`Search failed: ${error.message}`, "error");
-    return;
+    setSearchStatus(`Search error: ${error.message}`, "error");
   }
-
-  renderSearchResults(data || []);
-  setSearchStatus(data?.length ? `${data.length} quotation${data.length === 1 ? "" : "s"} found.` : "No quotations found.");
 }
 
 async function fetchQuotationById(quoteId) {
@@ -765,16 +961,30 @@ async function loadQuotation(quoteId, { printAfterLoad = false, mode = "open" } 
 
   setSearchStatus("Loading quotation...", "loading");
   try {
+    console.log(`📂 Loading quotation with ID: ${quoteId} (mode: ${mode})`);
     const quotation = await fetchQuotationById(quoteId);
+    console.log(`✅ Quotation loaded:`, quotation.quote_number);
     populateQuotationForm(quotation);
+    
+    // Clear search results and show success message
+    renderSearchResults([]);
+    searchInput.value = "";
+    
     setSearchStatus(`${quotation.quote_number || "Quotation"} loaded in edit mode.`);
     showSuccessMessage(mode === "edit" ? "Quotation ready to edit." : "Quotation loaded successfully.");
 
+    // Scroll to form for better UX
+    const formPanel = document.querySelector(".input-panel");
+    if (formPanel) {
+      formPanel.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
     if (printAfterLoad) {
+      console.log(`🖨️ Printing quotation after 250ms`);
       setTimeout(() => window.print(), 250);
     }
   } catch (error) {
-    console.error("Load error:", error);
+    console.error("❌ Load error:", error);
     setSearchStatus(`Could not load quotation: ${error.message}`, "error");
   }
 }
@@ -900,18 +1110,35 @@ printButton.addEventListener("click", () => window.print());
 
 searchButton.addEventListener("click", searchQuotations);
 searchInput.addEventListener("input", () => {
+  // Debounce search with shorter timeout for better UX
   clearTimeout(searchDebounceTimer);
-  searchDebounceTimer = setTimeout(searchQuotations, 350);
+  console.log(`⏱️ Debouncing search for: "${searchInput.value}"`);
+  
+  // Only search if there's content (allow single character searches)
+  if (searchInput.value.trim().length >= 1) {
+    searchDebounceTimer = setTimeout(() => {
+      console.log(`⏱️ Debounce timeout reached, executing search`);
+      searchQuotations();
+    }, 300);
+  } else {
+    // Clear results if search box is empty
+    renderSearchResults([]);
+    setSearchStatus("Search by quote number, client name, or phone number.");
+  }
 });
 searchInput.addEventListener("keydown", (event) => {
   if (event.key === "Enter") {
     event.preventDefault();
+    console.log(`⌨️ Enter key pressed, executing search`);
+    clearTimeout(searchDebounceTimer);
     searchQuotations();
   }
 });
 clearSearchButton.addEventListener("click", () => {
+  console.log(`🗑️ Clear search clicked`);
   searchInput.value = "";
   renderSearchResults([]);
+  searchInput.focus();
   setSearchStatus("Search by quote number, client name, or phone number.");
 });
 searchResults.addEventListener("click", (event) => {
@@ -920,6 +1147,7 @@ searchResults.addEventListener("click", (event) => {
 
   const quoteId = button.dataset.id;
   const action = button.dataset.action;
+  console.log(`🎯 Result action triggered: ${action} for quote ID: ${quoteId}`);
   loadQuotation(quoteId, {
     mode: action,
     printAfterLoad: action === "print"
