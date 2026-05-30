@@ -6,6 +6,7 @@
     <title>Fybron Pool Proposal Maker</title>
     <link rel="stylesheet" href="styles.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   </head>
   <body>
     <main class="app-shell">
@@ -17,7 +18,8 @@
           </div>
           <img class="topbar-logo" src="assets/fybron-logo.jpeg" alt="Fybron Pools">
           <div class="action-bar">
-            <button class="icon-button" id="printProposal" type="button" aria-label="Print proposal" title="Print proposal">Print</button>
+            <button class="icon-button" id="downloadPdf" type="button" aria-label="Download as PDF" title="Download as PDF" disabled>PDF</button>
+            <button class="icon-button" id="printProposal" type="button" aria-label="Print proposal" title="Print proposal" disabled>Print</button>
             <button class="icon-button" id="saveProposal" type="button" aria-label="Save proposal to database" title="Save proposal">Save</button>
           </div>
         </header>
@@ -39,6 +41,7 @@
                 <thead>
                   <tr>
                     <th>Quote Number</th>
+                    <th>Revision</th>
                     <th>Client Name</th>
                     <th>Phone</th>
                     <th>Proposal Date</th>
@@ -53,36 +56,76 @@
 
           <form class="panel input-panel" id="proposalForm">
             <div class="section-title"><h2>Client</h2></div>
-            <label><span>Client name</span><input id="clientName" type="text" value="Palm Grove Resort" autocomplete="organization"></label>
+            <label><span>Client name</span><input id="clientName" type="text" value="" autocomplete="organization"></label>
             <label><span>Phone number</span><input id="phone" type="tel" value="" autocomplete="tel"></label>
-            <label><span>Project location</span><input id="location" type="text" value="Alappuzha, Kerala" autocomplete="address-level2"></label>
+            <label><span>Project location</span><input id="location" type="text" value="" autocomplete="address-level2"></label>
             <div class="split">
               <label><span>Proposal date</span><input id="proposalDate" type="date"></label>
-              <label><span>Quote number</span><input id="quoteNo" type="text" value="QU2026-MY-001"></label>
+              <label><span>Quote number</span><input id="quoteNo" type="text" value="" autocomplete="off" readonly></label>
+            </div>
+            <div class="split">
+              <label><span>Revision</span><input id="revision" type="text" value="R0" readonly></label>
+              <button class="secondary-button" id="createRevision" type="button">Create Revision</button>
             </div>
             <label><span>Quotation Validity (Days)</span><input id="validityDays" type="number" min="1" step="1" value="7"></label>
 
             <div class="section-title"><h2>Pool Size</h2></div>
             <div class="split">
-              <label><span>Length</span><input id="length" type="number" min="1" step="0.01" value="6"></label>
-              <label><span>Width</span><input id="width" type="number" min="1" step="0.01" value="2.75"></label>
+              <label><span>Length</span><input id="length" type="number" min="1" step="0.01" value=""></label>
+              <label><span>Width</span><input id="width" type="number" min="1" step="0.01" value=""></label>
             </div>
             <div class="split">
-              <label><span>Avg. depth</span><input id="depth" type="number" min="0.5" step="0.01" value="1.2"></label>
+              <label><span>Avg. depth</span><input id="depth" type="number" min="0.5" step="0.01" value=""></label>
               <label><span>Unit</span><select id="unit"><option value="m">Meters</option><option value="ft">Feet</option></select></label>
             </div>
+            <div class="treatment-area-info" id="treatmentAreaInfo" hidden>
+              <div class="metric-display">
+                <span>Floor Area (sq.m)</span>
+                <strong id="floorAreaValue">0</strong>
+              </div>
+              <div class="metric-display">
+                <span>Wall Area (sq.m)</span>
+                <strong id="wallAreaValue">0</strong>
+              </div>
+              <div class="metric-display">
+                <span>Total Treatment Area (sq.m)</span>
+                <strong id="totalTreatmentAreaValue">0</strong>
+              </div>
+              <div class="metric-display">
+                <span>Total Treatment Area (sq.ft)</span>
+                <strong id="totalTreatmentAreaFtValue">0</strong>
+              </div>
+            </div>
             <label>
-              <span>Pool type</span>
-              <select id="poolType">
-                <option value="Fibreglass In-Ground Skimmer Pool">Fibreglass In-Ground Skimmer Pool</option>
-                <option value="Plunge Pool">Plunge Pool</option>
-                <option value="Prefabricated Panel Pool">Prefabricated Panel Pool</option>
-                <option value="Infinity Pool">Infinity Pool</option>
-                <option value="Indoor Pool">Indoor Pool</option>
-                <option value="Custom Pool">Custom Pool</option>
-                <option value="RCC Swimming Pool Waterproofing & Filtration System">RCC Swimming Pool Waterproofing & Filtration System</option>
+              <span>Proposal Type</span>
+              <select id="proposalTypeField">
+                <option value="fibreglass-pool">Fibreglass Pool</option>
+                <option value="frp-waterproofing">FRP Waterproofing / Lamination</option>
+                <option value="frp-lamination-mep">FRP Lamination + MEP</option>
+                <option value="mep-only">MEP & Filtration Only</option>
               </select>
             </label>
+            <div class="select-group">
+              <label id="fibreglassPoolTypeField">
+                <span>Pool type</span>
+                <select id="poolType">
+                  <option value="Fibreglass In-Ground Skimmer Pool">Fibreglass In-Ground Skimmer Pool</option>
+                  <option value="Fibreglass Above-Ground Skimmer Pool">Fibreglass Above-Ground Skimmer Pool</option>
+                  <option value="Plunge Pool">Plunge Pool</option>
+                  <option value="Prefabricated Panel Pool">Prefabricated Panel Pool</option>
+                  <option value="Infinity Pool">Infinity Pool</option>
+                  <option value="Indoor Pool">Indoor Pool</option>
+                  <option value="Custom Pool">Custom Pool</option>
+                </select>
+              </label>
+              <label id="existingPoolTypeField" hidden>
+                <span>Existing pool type</span>
+                <select id="existingPoolType">
+                  <option value="RCC In-Ground Pool">RCC In-Ground Pool</option>
+                  <option value="RCC Above-Ground Pool">RCC Above-Ground Pool</option>
+                </select>
+              </label>
+            </div>
 
             <div class="section-title"><h2>Commercials</h2></div>
             <div class="split">
@@ -90,12 +133,31 @@
               <label><span>GST %</span><input id="gstRate" type="number" min="0" step="0.1" value="18"></label>
             </div>
             <div class="commercial-grid">
-              <label><span>Pool shell unit price</span><input id="shellUnitPrice" type="number" min="0" step="1000" value="0"></label>
-              <label><span>Positioning / installation unit price</span><input id="installationUnitPrice" type="number" min="0" step="1000" value="0"></label>
-              <label><span>MEP & accessories unit price</span><input id="mepUnitPrice" type="number" min="0" step="1000" value="0"></label>
+              <label><span>Pool shell unit price</span><input id="shellUnitPrice" type="number" min="0" step="1000" value=""></label>
+              <label><span>Positioning / installation unit price</span><input id="installationUnitPrice" type="number" min="0" step="1000" value=""></label>
+              <label><span>MEP & accessories unit price</span><input id="mepUnitPrice" type="number" min="0" step="1000" value=""></label>
             </div>
             <label class="check-row"><input id="includeGst" type="checkbox"><span>Show GST in total</span></label>
-            <label><span>Included scope</span><textarea id="scope" rows="5">Supply and deliver the approved Fybron fibreglass pool shell to the project site. Install the complete pool system, including filtration equipment, pump, pipelines, electrification, underwater lighting, testing, commissioning, and handover in ready-to-use condition.</textarea></label>
+
+            <div class="section-title"><h2>MEP & Water Treatment Scope</h2></div>
+            <div class="mep-panel">
+              <button class="secondary-button add-button" id="addMepItem" type="button">Add Item</button>
+              <div class="mep-table-wrap">
+                <table class="input-table mep-input-table">
+                  <thead>
+                    <tr>
+                      <th>Item Description</th>
+                      <th>Brand Name</th>
+                      <th>Qty</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="mepItemsContainer"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <label id="scopeFieldWrapper"><span>Included scope</span><textarea id="scope" rows="5">Supply and deliver the approved fibreglass pool shell to the project site. Install the complete pool system, including filtration equipment, pump, pipelines, electrification, underwater lighting, testing, commissioning, and handover in ready-to-use condition.</textarea></label>
             <label><span>Notes</span><textarea id="notes" rows="6">We trust that the above details meet your requirements. The quoted prices are competitive and valid for the specified quotation validity period from the date of this proposal.
 
 Kindly review and confirm the project details before approval, as changes cannot be accommodated once production begins. In the event of cancellation, the advance will be adjusted against work completed, and any eligible refund will be processed within 14 days. All legal matters will be subject to the seller's local jurisdiction.</textarea></label>
@@ -135,11 +197,13 @@ Kindly review and confirm the project details before approval, as changes cannot
           <div><span>Date</span><strong id="outDate">16 May 2026</strong></div>
           <div><span>Valid Until</span><strong id="outValidUntil">23 May 2026</strong></div>
           <div><span>Quote #</span><strong id="outQuoteNo">QU2026-MY-001</strong></div>
+          <div><span>Revision</span><strong id="outRevision">R0</strong></div>
         </div>
 
         <p class="lead" id="proposalIntro"></p>
 
-        <section class="proposal-section">
+        <!-- SECTION: Dear Sir Letter & Benefits (shown for Fibreglass and FRP proposals) -->
+        <section class="proposal-section fibreglass-section" id="fiberglassBenefitsSection">
           <h3>Why Fybron Composite Pools</h3>
           <ul>
             <li>Factory-manufactured FRP/GRP pool shell with smooth pigmented gelcoat finish.</li>
@@ -149,12 +213,19 @@ Kindly review and confirm the project details before approval, as changes cannot
           </ul>
         </section>
 
+        <!-- SECTION: Proposal Scope Summary -->
         <section class="proposal-section">
-          <h3>Commercial & Technical Proposal Summary</h3>
+          <h3>Proposal Scope Summary</h3>
           <ul id="technicalSummary"></ul>
         </section>
 
-        <h3>Price & Scope Summary</h3>
+        <!-- SECTION: Existing Pool Details (for RCC/FRP proposals) -->
+        <section class="proposal-section" id="existingPoolDetailsSection" hidden>
+          <h3>Existing Pool Details</h3>
+          <dl class="spec-list" id="existingPoolSpecList"></dl>
+        </section>
+
+        <h3 id="commercialSummaryHeading">Commercial Summary</h3>
         <table class="quote-table">
           <thead><tr><th>Description</th><th>Unit Price</th><th>Qty</th><th>Amount</th></tr></thead>
           <tbody id="quoteRows"></tbody>
@@ -162,124 +233,23 @@ Kindly review and confirm the project details before approval, as changes cannot
 
         <div class="total-line"><span id="amountWords"></span><strong id="grandTotal">Rs 6,97,000</strong></div>
 
-        <figure class="pool-image-card">
+        <figure class="pool-image-card" id="poolImageCard">
           <div id="poolDiagram" class="pool-diagram"></div>
           <figcaption><span>Pool schematic</span><strong id="poolImageSize">Size: 6 x 2.75 x 1.2 m</strong></figcaption>
         </figure>
 
-        <div class="proposal-columns">
+        <!-- SECTION: Pool Specifications (Fibreglass pools) -->
+        <div class="proposal-columns" id="poolSpecificationsSection">
           <div><h3>Pool Specifications</h3><dl class="spec-list" id="specList"></dl></div>
         </div>
 
         <h3>Proposed MEP & Water Treatment Scope</h3>
         <table class="items-table">
-          <thead><tr><th>Photo</th><th>Item Description</th><th>Brand Name</th><th>Qty</th></tr></thead>
+          <thead><tr><th>Item Description</th><th>Brand Name</th><th>Qty</th></tr></thead>
           <tbody id="itemRows"></tbody>
         </table>
 
-        <section class="proposal-section">
-          <h3>Fybron Scope of Supply & Work</h3>
-          <p class="scope-note" id="outScope"></p>
-          <div class="scope-grid">
-            <div>
-              <h4>Pool Supply & Delivery</h4>
-              <ul>
-                <li>Supply and deliver the approved factory-manufactured Fybron fibreglass pool shell/panel system as per approved specifications.</li>
-                <li>Safe transportation and handling of all supplied materials.</li>
-                <li>Minor handling marks during transportation or installation shall be rectified.</li>
-              </ul>
-            </div>
-            <div>
-              <h4>Pool Finish</h4>
-              <ul>
-                <li>Interior: smooth premium pigmented gelcoat finish for durability and easy maintenance.</li>
-                <li>Exterior: protective flow-coat finish for enhanced structural durability.</li>
-              </ul>
-            </div>
-            <div>
-              <h4>MEP Works</h4>
-              <ul>
-                <li>Supply and installation of pool circulation pump and filtration system.</li>
-                <li>PVC pipelines and fittings, underwater lights if included in BOQ, and electrical control panel connections.</li>
-              </ul>
-            </div>
-            <div>
-              <h4>Installation, Testing & Handover</h4>
-              <ul>
-                <li>Pool positioning, installation, and on-site technical supervision.</li>
-                <li>Testing and commissioning of the complete pool system.</li>
-                <li>Handover of the pool in fully functional and ready-to-use condition.</li>
-              </ul>
-            </div>
-          </div>
-        </section>
-
-        <section class="proposal-section">
-          <h3>Client / Contractor Scope</h3>
-          <div class="scope-grid">
-            <div>
-              <h4>Site Preparation & Civil Works</h4>
-              <ul>
-                <li>Site clearing, excavation, and disposal of excavated material.</li>
-                <li>Construction of minimum 100 mm RCC/PCC pool bed/foundation as per approved drawings.</li>
-                <li>Retaining walls, structural supports, M-sand, and approved backfilling materials where required.</li>
-              </ul>
-            </div>
-            <div>
-              <h4>Utilities & Site Arrangements</h4>
-              <ul>
-                <li>Electrical power supply and electrical points inside the pump room.</li>
-                <li>Adequate water supply for testing and pool filling.</li>
-                <li>Pump room construction and waterproof flooring where applicable.</li>
-              </ul>
-            </div>
-            <div>
-              <h4>Finishing Works</h4>
-              <ul>
-                <li>Pool decking, coping, external finishing, aesthetic works, and landscaping.</li>
-                <li>External stairs, pathways, cladding, changing rooms, and showers if applicable.</li>
-              </ul>
-            </div>
-            <div>
-              <h4>Coordination & Site Management</h4>
-              <ul>
-                <li>Coordination with civil contractors and related agencies.</li>
-                <li>Timely completion of preparatory works to maintain project schedule.</li>
-                <li>Site access arrangements, labour coordination, and local permissions.</li>
-              </ul>
-            </div>
-          </div>
-        </section>
-
-        <section class="proposal-section terms-section">
-          <h3>Payment Terms & Project Timeline</h3>
-          <div class="terms-grid">
-            <div>
-              <h4>Payment Terms</h4>
-              <ul>
-                <li>50% advance payment upon order confirmation.</li>
-                <li>40% payment upon delivery of pool shell to site.</li>
-                <li>10% balance payment upon completion and handover of the project.</li>
-              </ul>
-            </div>
-            <div>
-              <h4>Project Timeline</h4>
-              <ul>
-                <li>Manufacturing & delivery: 30 working days from complete first stage advance receipt.</li>
-                <li>Installation & commissioning: 5-7 days after material delivery, subject to site readiness.</li>
-              </ul>
-            </div>
-            <div>
-              <h4>Warranty & Durability</h4>
-              <ul>
-                <li>The fibreglass pool shell is engineered for an expected service life of approximately 30-45 years, subject to normal usage and proper maintenance.</li>
-                <li>The pool shell carries a 10-year material warranty against water leakage, effective from the date of installation.</li>
-                <li>Gelcoat colour variation due to regular use and chlorination is not covered under warranty.</li>
-                <li>Electrical and mechanical components are covered by manufacturer warranty.</li>
-              </ul>
-            </div>
-          </div>
-        </section>
+        <section class="proposal-section" id="proposalTypeDetailsSection"></section>
 
         <section class="proposal-section notes-section">
           <h3>Notes & Terms</h3>

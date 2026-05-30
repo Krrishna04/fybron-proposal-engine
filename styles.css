@@ -194,7 +194,84 @@ input:focus, select:focus, textarea:focus { border-color: var(--brand); box-shad
 }
 .check-row input { width: 18px; height: 18px; }
 .check-row span { text-transform: none; letter-spacing: 0; font-size: 14px; color: var(--ink); }
+.mep-panel {
+  display: grid;
+  gap: 12px;
+}
+.mep-panel .add-button {
+  width: fit-content;
+}
+.mep-table-wrap {
+  overflow-x: auto;
+}
+.input-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 4px;
+}
+.input-table th,
+.input-table td {
+  border: 1px solid #c8d5d2;
+  padding: 10px 10px;
+}
+.input-table th {
+  background: #f7faf8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 12px;
+}
+.mep-input-table th:nth-child(1),
+.mep-input-table td:nth-child(1) {
+  width: 55%;
+}
+.mep-input-table th:nth-child(2),
+.mep-input-table td:nth-child(2) {
+  width: 25%;
+}
+.mep-input-table th:nth-child(3),
+.mep-input-table td:nth-child(3) {
+  width: 10%;
+}
+.mep-input-table th:nth-child(4),
+.mep-input-table td:nth-child(4) {
+  width: 10%;
+}
+.input-table input {
+  width: 100%;
+  border: 1px solid #c8d5d2;
+  border-radius: 6px;
+  padding: 8px 10px;
+}
+.input-table .remove-mep-item {
+  width: 100%;
+}
 .summary-panel { padding: 16px; }
+.treatment-area-info {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 12px;
+  background: #fbfcfa;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.metric-display {
+  display: grid;
+  gap: 4px;
+}
+.metric-display span {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  font-weight: 700;
+}
+.metric-display strong {
+  font-size: 16px;
+  color: var(--brand-dark);
+  font-weight: 700;
+}
 .pool-visual {
   min-height: 190px;
   border-radius: 8px;
@@ -229,19 +306,19 @@ input:focus, select:focus, textarea:focus { border-color: var(--brand); box-shad
   align-content: space-between;
 }
 .metric-grid strong { font-size: 19px; line-height: 1.1; }
-.proposal { border-radius: 8px; padding: 24px 28px 32px; }
+.proposal { border-radius: 8px; padding: 22px 24px 28px; }
 .quotation-letterhead {
   display: block;
   width: 100%;
   height: auto;
-  margin: 0 0 18px;
+  margin: 0 0 14px;
   border-bottom: 1px solid var(--line);
-  padding-bottom: 12px;
+  padding-bottom: 10px;
 }
-.proposal-head, .proposal-meta, .proposal-columns { display: grid; gap: 18px; }
-.proposal-head { grid-template-columns: 1fr auto; align-items: start; padding-bottom: 20px; border-bottom: 3px solid var(--brand); }
-.proposal-head p { margin-bottom: 5px; color: var(--muted); font-weight: 800; }
-.proposal-head h2 { font-size: 25px; line-height: 1.18; }
+.proposal-head, .proposal-meta, .proposal-columns { display: grid; gap: 14px; }
+.proposal-head { grid-template-columns: 1fr auto; align-items: start; padding-bottom: 16px; border-bottom: 3px solid var(--brand); }
+.proposal-head p { margin-bottom: 4px; color: var(--muted); font-weight: 800; }
+.proposal-head h2 { font-size: 24px; line-height: 1.16; }
 .brand-logo {
   width: 150px;
   max-width: 28vw;
@@ -255,7 +332,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--brand); box-shad
 .proposal-meta strong { display: block; margin-top: 4px; }
 .lead { font-size: 16px; line-height: 1.58; color: #25363b; }
 .pool-image-card {
-  margin: 18px 0 22px;
+  margin: 14px 0 18px;
   border: 1px solid var(--line);
   border-radius: 8px;
   overflow: hidden;
@@ -266,8 +343,8 @@ input:focus, select:focus, textarea:focus { border-color: var(--brand); box-shad
   align-items: center;
   justify-content: center;
   width: 100%;
-  min-height: 350px;
-  padding: 20px;
+  min-height: 280px;
+  padding: 16px;
   background: white;
 }
 .pool-diagram svg {
@@ -299,10 +376,10 @@ input:focus, select:focus, textarea:focus { border-color: var(--brand); box-shad
 }
 .pool-image-card strong { color: var(--brand-dark); }
 .proposal-section {
-  margin: 20px 0;
+  margin: 14px 0;
   break-inside: avoid;
 }
-.proposal-section h3 { margin-top: 0; }
+.proposal-section h3 { margin: 0 0 10px 0; }
 .proposal-section h4 {
   margin: 0 0 6px;
   color: var(--ink);
@@ -370,9 +447,9 @@ th { background: #eff6f4; color: var(--brand-dark); }
   background: #fffaf0;
 }
 .total-line strong { font-size: 22px; color: var(--brand-dark); }
-.items-table th:first-child, .items-table td:first-child { width: 78px; text-align: center; }
-.items-table th:last-child, .items-table td:last-child { width: 92px; text-align: right; white-space: nowrap; }
-.items-table th:nth-child(3), .items-table td:nth-child(3) { width: 130px; }
+.items-table th:first-child, .items-table td:first-child { width: 65%; text-align: left; }
+.items-table th:nth-child(2), .items-table td:nth-child(2) { width: 20%; text-align: center; }
+.items-table th:last-child, .items-table td:last-child { width: 15%; text-align: right; white-space: nowrap; }
 .item-photo {
   width: 54px;
   height: 44px;
@@ -430,24 +507,51 @@ th { background: #eff6f4; color: var(--brand-dark); }
   .item-photo { width: 46px; height: 38px; }
 }
 @media print {
-  @page { size: A4; margin: 10mm; }
+  @page { size: A4; margin: 8mm; }
   body { background: white; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .workspace { display: none; }
   .app-shell { display: block; padding: 0; }
   .proposal { box-shadow: none; border: 0; border-radius: 0; padding: 0; min-height: 277mm; display: flex; flex-direction: column; }
-  .quotation-letterhead { margin-bottom: 10mm; padding-bottom: 4mm; }
-  .proposal-footer { margin-top: auto; padding-top: 6mm; }
-  .pool-image-card { margin: 8px 0; border: none; background: white; break-inside: avoid; break-before: auto; overflow: visible; }
-  .pool-diagram { min-height: auto; max-height: none; padding: 8px; break-inside: avoid; overflow: visible; display: block; }
+  .proposal-notification { display: none !important; }
+  .quotation-letterhead { margin-bottom: 4mm; padding-bottom: 2mm; }
+  .proposal-head { margin: 4mm 0; padding-bottom: 6mm; break-after: avoid; }
+  .proposal-meta { margin: 4mm 0; }
+  .lead { margin: 4mm 0; font-size: 13px; }
+  .proposal-section { margin: 4mm 0; break-inside: avoid; }
+  .proposal-section h3 { margin: 2mm 0 3mm 0; break-after: avoid; font-size: 13px; }
+  .proposal-section h4 { margin: 2mm 0 2mm 0; font-size: 12px; }
+  .proposal-section ul { margin: 2mm 0; padding-left: 14px; }
+  .proposal-section li { margin: 1mm 0; font-size: 12px; }
+  .pool-image-card { margin: 4mm 0; border: none; background: white; break-inside: avoid; overflow: visible; }
+  .pool-diagram { min-height: auto; max-height: none; padding: 4mm; break-inside: avoid; overflow: visible; display: block; }
   .pool-diagram svg { max-width: 100%; height: auto; display: block; overflow: visible; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .pool-image-card figcaption { padding: 4px 6px; font-size: 10px; }
-  .proposal-section { margin: 6px 0; break-inside: avoid; }
-  .proposal-section h3 { margin: 4px 0 6px 0; break-after: avoid; }
-  .proposal-section ul { margin: 4px 0; padding-left: 16px; }
-  .proposal-section li { margin: 2px 0; }
-  .scope-grid { grid-template-columns: 1fr 1fr; gap: 8px 12px; }
-  .items-table { font-size: 11px; }
-  .quote-table { font-size: 11px; margin: 4px 0; }
+  .pool-image-card figcaption { padding: 2mm 3mm; font-size: 9px; }
+  .treatment-area-info { margin: 2mm 0; padding: 6mm; font-size: 11px; }
+  .metric-display { margin: 1mm 0; }
+  .metric-display strong { font-size: 12px; }
+  .quote-table { font-size: 10px; margin: 2mm 0; }
+  .quote-table th, .quote-table td { padding: 3mm 2mm; }
+  .total-line { margin: 2mm 0; padding: 3mm 6mm; font-size: 11px; }
+  .total-line strong { font-size: 14px; }
+  .items-table { font-size: 10px; margin: 2mm 0; }
+  .items-table th, .items-table td { padding: 2mm; }
+  .scope-grid { grid-template-columns: 1fr 1fr; gap: 3mm 6mm; margin: 2mm 0; }
+  .scope-grid > div { border-left-width: 2px; padding-left: 4mm; margin: 1mm 0; }
+  .terms-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 3mm; margin: 2mm 0; }
+  .terms-grid > div { font-size: 10px; }
+  .terms-grid h4 { font-size: 11px; margin: 1mm 0; }
+  .terms-grid ul { margin: 1mm 0; padding-left: 12px; }
+  .terms-grid li { margin: 0.5mm 0; font-size: 9px; }
+  .signature-grid { grid-template-columns: 1fr 1fr; gap: 12mm; margin: 6mm 0; break-inside: avoid; }
+  .signature-grid div { min-height: 40mm; border-top: 1px solid var(--ink); padding-top: 3mm; }
+  .signature-grid strong { font-size: 12px; margin: 2mm 0 1mm; }
+  .signature-grid p { font-size: 9px; margin: 1mm 0 0; }
+  .notes-section { margin: 2mm 0; }
+  .notes-section p { font-size: 10px; line-height: 1.4; margin: 1mm 0; }
+  .proposal-footer { margin-top: auto; padding-top: 2mm; margin-bottom: 0; }
+  .quotation-footer-image { max-height: 15mm; }
+  .footer-text { display: block; font-size: 8px; }
+  .footer-text p { margin: 0.5mm 0; }
   h3 { break-after: avoid; }
   tr { break-inside: avoid; }
 }

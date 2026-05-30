@@ -1,0 +1,19 @@
+apply_patch <<'PATCH'
+*** Begin Patch
+*** Update File: c:\Users\Krishna Chandran\Documents\Codex\fybron-proposal-engine\app.js
+@@
+   const client = textValue(fields.clientName, "Client");
+   const location = textValue(fields.location, "Project site");
+-  const revision = fields.revision?.value.trim() || "R0";
++  const revision_no = fields.revision?.value.trim() || "R0";
+   const proposalDate = fields.proposalDate.value || dateInputValue(new Date());
+   const validityDays = Math.max(1, Math.round(asNumber(fields.validityDays, 7)));
+   const validUntil = addDaysToDate(proposalDate, validityDays);
+@@
+     location,
+     treatmentArea,
+-    revision,
++    revision_no,
+     preparedByName: textValue(fields.preparedByName, "Krishna Chandran"),
+*** End Patch
+PATCH
