@@ -1901,10 +1901,25 @@ function sanitizeFilenamePart(value) {
 function generatePdfFilename() {
   const client = sanitizeFilenamePart(fields.clientName.value) || "Proposal";
   const location = sanitizeFilenamePart(fields.location.value);
+  
+  // Generate pool size from dimensions and unit
+  let poolSize = "";
+  const length = fields.length.value ? Number(fields.length.value) : null;
+  const width = fields.width.value ? Number(fields.width.value) : null;
+  const depth = fields.depth.value ? Number(fields.depth.value) : null;
+  const unit = fields.unit.value || "m";
+  
+  if (length && width && depth) {
+    // Format without spaces: 6x2.75x1.2m
+    poolSize = `${length}x${width}x${depth}${unit}`;
+  }
+  
   const quoteNo = sanitizeFilenamePart(fields.quoteNo.value.trim());
   const parts = [client];
   if (location) parts.push(location);
+  if (poolSize) parts.push(poolSize);
   if (quoteNo) parts.push(quoteNo);
+  
   const filename = `${parts.join(" - ")}.pdf`;
   return filename;
 }
