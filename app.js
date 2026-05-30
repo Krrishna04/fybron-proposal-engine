@@ -14,6 +14,7 @@ const state = {
 };
 let supabaseClient = null;
 let currentQuoteId = null;
+let hasUnsavedChanges = false;
 let searchDebounceTimer = null;
 
 // Initialize Supabase client
@@ -1204,8 +1205,14 @@ if (!fields.quoteNo.value.trim()) {
     render();
   });
 }
-form.addEventListener("input", render);
-form.addEventListener("change", render);
+form.addEventListener("input", (event) => {
+  markUnsavedChanges();
+  render();
+});
+form.addEventListener("change", (event) => {
+  markUnsavedChanges();
+  render();
+});
 
 // Handle proposal type change to update MEP items
 fields.proposalTypeField?.addEventListener("change", () => {
@@ -1315,13 +1322,21 @@ function collectQuotationData({ forUpdate = false } = {}) {
 
 function setEditMode(quoteId) {
   currentQuoteId = quoteId || null;
+  hasUnsavedChanges = false;
   saveButton.textContent = currentQuoteId ? "Update" : "Save";
   saveButton.title = currentQuoteId ? "Update existing quotation" : "Save proposal";
   updateActionButtons();
 }
 
+function markUnsavedChanges() {
+  if (currentQuoteId) {
+    hasUnsavedChanges = true;
+    updateActionButtons();
+  }
+}
+
 function updateActionButtons() {
-  const enabled = Boolean(currentQuoteId);
+  const enabled = Boolean(currentQuoteId) && !hasUnsavedChanges;
   printButton.disabled = !enabled;
   downloadPdfButton.disabled = !enabled;
   if (fields.createRevisionButton) {
@@ -1823,6 +1838,9 @@ async function saveProposalToSupabase() {
 
     if (!isUpdate && data?.[0]?.id) {
       setEditMode(data[0].id);
+    } else if (isUpdate) {
+      hasUnsavedChanges = false;
+      updateActionButtons();
     }
 
     showSuccessMessage(isUpdate ? "Proposal updated successfully" : "Proposal saved successfully");
