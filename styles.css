@@ -226,15 +226,16 @@ input:focus, select:focus, textarea:focus { border-color: var(--brand); box-shad
 }
 .mep-input-table th:nth-child(2),
 .mep-input-table td:nth-child(2) {
-  width: 25%;
+  width: 20%;
 }
 .mep-input-table th:nth-child(3),
 .mep-input-table td:nth-child(3) {
-  width: 10%;
+  width: 12%;
+  min-width: 80px;
 }
 .mep-input-table th:nth-child(4),
 .mep-input-table td:nth-child(4) {
-  width: 10%;
+  width: 13%;
 }
 .input-table input {
   width: 100%;
