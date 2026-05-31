@@ -328,9 +328,76 @@ input:focus, select:focus, textarea:focus { border-color: var(--brand); box-shad
   padding: 6px;
   background: white;
 }
-.proposal-meta { grid-template-columns: 1.2fr 1.2fr 0.9fr 0.9fr 0.9fr; margin: 20px 0; }
-.proposal-meta div { border-left: 3px solid var(--accent); padding-left: 10px; }
-.proposal-meta strong { display: block; margin-top: 4px; }
+.proposal-meta {
+  display: grid;
+  grid-template-columns: 1.4fr 1.4fr 1.8fr;
+  grid-template-rows: auto auto;
+  gap: 18px 18px;
+  margin: 20px 0;
+  align-items: start;
+}
+.proposal-meta > div {
+  border-left: 3px solid var(--accent);
+  padding-left: 10px;
+  min-width: 0;
+}
+.proposal-meta strong {
+  display: block;
+  margin-top: 4px;
+}
+.proposal-meta .meta-date,
+.proposal-meta .meta-validity {
+  border-left: 3px solid var(--accent);
+  padding-left: 10px;
+}
+.proposal-meta .meta-date span,
+.proposal-meta .meta-validity span,
+.proposal-meta .meta-prepared span,
+.proposal-meta .meta-location span,
+.proposal-meta .meta-quote span {
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+}
+.proposal-meta .meta-date strong,
+.proposal-meta .meta-validity strong,
+.proposal-meta .meta-prepared strong,
+.proposal-meta .meta-location strong,
+.proposal-meta .meta-quote strong {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1.2;
+}
+.proposal-meta .meta-quote {
+  min-width: 0;
+}
+.proposal-meta .meta-quote strong {
+  white-space: nowrap;
+  word-break: keep-all;
+  overflow-wrap: normal;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+  max-width: 100%;
+}
+.proposal-meta .meta-date,
+.proposal-meta .meta-validity {
+  display: flex;
+  flex-direction: column;
+}
+#outQuoteNo, #quoteNo {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: inline-block;
+  max-width: 100%;
+}
+.revision-controls { display: none; grid-template-columns: 1fr auto; gap: 12px; align-items: end; }
+.revision-controls.visible { display: grid; }
+#outQuoteNo, #quoteNo { white-space: nowrap; word-break: keep-all; overflow-wrap: normal; }
 .lead { font-size: 16px; line-height: 1.58; color: #25363b; }
 .pool-image-card {
   margin: 14px 0 18px;
@@ -339,6 +406,15 @@ input:focus, select:focus, textarea:focus { border-color: var(--brand); box-shad
   overflow: hidden;
   background: #fbfcfa;
 }
+
+/* Prevent notifications and overlays from appearing in print/PDF */
+@media print {
+  .proposal-notification, .validation-error-dialog, .search-status, .proposal .proposal-notification { display: none !important; }
+  .proposal { overflow-x: hidden !important; }
+}
+
+/* Ensure proposal area doesn't introduce horizontal scroll from header */
+.proposal { overflow-x: hidden; }
 .pool-diagram {
   display: flex;
   align-items: center;

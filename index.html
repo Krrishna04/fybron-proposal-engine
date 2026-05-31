@@ -63,7 +63,7 @@
               <label><span>Proposal date</span><input id="proposalDate" type="date"></label>
               <label><span>Quote number</span><input id="quoteNo" type="text" value="" autocomplete="off" readonly></label>
             </div>
-            <div class="split">
+            <div id="revisionControls" class="revision-controls" hidden>
               <label><span>Revision</span><input id="revision" type="text" value="R0" readonly></label>
               <button class="secondary-button" id="createRevision" type="button">Create Revision</button>
             </div>
@@ -123,6 +123,8 @@
                 <select id="existingPoolType">
                   <option value="RCC In-Ground Pool">RCC In-Ground Pool</option>
                   <option value="RCC Above-Ground Pool">RCC Above-Ground Pool</option>
+                  <option value="Fibreglass In-Ground Pool">Fibreglass In-Ground Pool</option>
+                  <option value="Fibreglass Above-Ground Pool">Fibreglass Above-Ground Pool</option>
                 </select>
               </label>
             </div>
@@ -136,6 +138,13 @@
               <label><span>Pool shell unit price</span><input id="shellUnitPrice" type="number" min="0" step="1000" value=""></label>
               <label><span>Positioning / installation unit price</span><input id="installationUnitPrice" type="number" min="0" step="1000" value=""></label>
               <label><span>MEP & accessories unit price</span><input id="mepUnitPrice" type="number" min="0" step="1000" value=""></label>
+            </div>
+            <div class="commercial-checkboxes">
+              <label class="check-row"><input id="includeMainWorks" type="checkbox" checked><span>Main Works</span></label>
+              <label class="check-row"><input id="includeInstallation" type="checkbox" checked><span>Installation / Positioning</span></label>
+              <label class="check-row"><input id="includeMepItems" type="checkbox" checked><span>MEP & Accessories</span></label>
+              <label class="check-row"><input id="includeSurfacePreparation" type="checkbox"><span>Surface Preparation</span></label>
+              <label class="check-row"><input id="includeTesting" type="checkbox" checked><span>Testing & Commissioning</span></label>
             </div>
             <label class="check-row"><input id="includeGst" type="checkbox"><span>Show GST in total</span></label>
 
@@ -192,12 +201,11 @@ Kindly review and confirm the project details before approval, as changes cannot
         </div>
 
         <div class="proposal-meta">
-          <div><span>Prepared for</span><strong id="outClient">Palm Grove Resort</strong></div>
-          <div><span>Location</span><strong id="outLocation">Alappuzha, Kerala</strong></div>
-          <div><span>Date</span><strong id="outDate">16 May 2026</strong></div>
-          <div><span>Valid Until</span><strong id="outValidUntil">23 May 2026</strong></div>
-          <div><span>Quote #</span><strong id="outQuoteNo">QU2026-MY-001</strong></div>
-          <div><span>Revision</span><strong id="outRevision">R0</strong></div>
+          <div class="meta-prepared"><span>Prepared for</span><strong id="outClient">Palm Grove Resort</strong></div>
+          <div class="meta-location"><span>Location</span><strong id="outLocation">Alappuzha, Kerala</strong></div>
+          <div class="meta-quote"><span>Quote #</span><strong id="outQuoteNo">QU2026-MY-001</strong></div>
+          <div class="meta-date"><span>Date</span><strong id="outDate">16 May 2026</strong></div>
+          <div class="meta-validity"><span>Validity Until</span><strong id="outValidUntil">23 May 2026</strong></div>
         </div>
 
         <p class="lead" id="proposalIntro"></p>
@@ -206,7 +214,7 @@ Kindly review and confirm the project details before approval, as changes cannot
         <section class="proposal-section fibreglass-section" id="fiberglassBenefitsSection">
           <h3>Why Fybron Composite Pools</h3>
           <ul>
-            <li>Factory-manufactured FRP/GRP pool shell with smooth pigmented gelcoat finish.</li>
+            <li>Engineered FRP/GRP pool shell with smooth pigmented gelcoat finish.</li>
             <li>Quick installation and commissioning after site readiness.</li>
             <li>Low-maintenance non-porous finish designed to reduce algae growth.</li>
             <li>Customizable colour, access steps, lighting, filtration, and site layout.</li>
@@ -243,7 +251,7 @@ Kindly review and confirm the project details before approval, as changes cannot
           <div><h3>Pool Specifications</h3><dl class="spec-list" id="specList"></dl></div>
         </div>
 
-        <h3>Proposed MEP & Water Treatment Scope</h3>
+        <h3 id="proposedMepHeading">Proposed MEP & Water Treatment Scope</h3>
         <table class="items-table">
           <thead><tr><th>Item Description</th><th>Brand Name</th><th>Qty</th></tr></thead>
           <tbody id="itemRows"></tbody>

@@ -16,6 +16,9 @@ let supabaseClient = null;
 let currentQuoteId = null;
 let hasUnsavedChanges = false;
 let searchDebounceTimer = null;
+// Preview state for quote number (not yet saved)
+let previewQuoteGenerated = false;
+let _previewQuoteToken = 0;
 
 // Initialize Supabase client
 // Replace with your Supabase URL and anon key
@@ -65,6 +68,7 @@ const fields = {
   existingPoolType: document.querySelector("#existingPoolType"),
   revision: document.querySelector("#revision"),
   createRevisionButton: document.querySelector("#createRevision"),
+  revisionControls: document.querySelector("#revisionControls"),
   poolTypeFieldWrapper: document.querySelector("#fibreglassPoolTypeField"),
   existingPoolTypeFieldWrapper: document.querySelector("#existingPoolTypeField"),
   baseRate: document.querySelector("#baseRate"),
@@ -72,6 +76,11 @@ const fields = {
   shellUnitPrice: document.querySelector("#shellUnitPrice"),
   installationUnitPrice: document.querySelector("#installationUnitPrice"),
   mepUnitPrice: document.querySelector("#mepUnitPrice"),
+  includeMainWorks: document.querySelector("#includeMainWorks"),
+  includeInstallation: document.querySelector("#includeInstallation"),
+  includeMepItems: document.querySelector("#includeMepItems"),
+  includeSurfacePreparation: document.querySelector("#includeSurfacePreparation"),
+  includeTesting: document.querySelector("#includeTesting"),
   includeGst: document.querySelector("#includeGst"),
   scope: document.querySelector("#scope"),
   scopeFieldWrapper: document.querySelector("#scopeFieldWrapper"),
@@ -105,7 +114,6 @@ const output = {
   amountWords: document.querySelector("#amountWords"),
   grandTotal: document.querySelector("#grandTotal"),
   itemRows: document.querySelector("#itemRows"),
-  outRevision: document.querySelector("#outRevision"),
   outNotes: document.querySelector("#outNotes"),
   outPreparedByName: document.querySelector("#outPreparedByName"),
   outPreparedByDesignation: document.querySelector("#outPreparedByDesignation"),
@@ -368,6 +376,11 @@ function syncMepItemsFromDom() {
 }
 
 function loadMepItems(items, poolType, proposalType = PROPOSAL_TYPES.FIBREGLASS_POOL) {
+  if (proposalType === PROPOSAL_TYPES.FRP_WATERPROOFING) {
+    setMepItems([]);
+    return;
+  }
+
   if (Array.isArray(items) && items.length > 0) {
     setMepItems(items);
     return;
@@ -454,9 +467,191 @@ function isFrpProposal(proposalType) {
          proposalType === PROPOSAL_TYPES.FRP_LAMINATION_MEP;
 }
 
+function isExistingPoolProposal(proposalType) {
+  return isFrpProposal(proposalType) || proposalType === PROPOSAL_TYPES.MEP_ONLY;
+}
+
 function isRccPoolOrFrp(proposalType) {
-  return proposalType === PROPOSAL_TYPES.FRP_WATERPROOFING || 
-         proposalType === PROPOSAL_TYPES.FRP_LAMINATION_MEP;
+  return isFrpProposal(proposalType);
+}
+
+function setCommercialCheckboxDefaults(proposalType) {
+  if (!fields.includeMainWorks || !fields.includeInstallation || !fields.includeMepItems || !fields.includeSurfacePreparation || !fields.includeTesting) return;
+
+  fields.includeMainWorks.checked = true;
+  fields.includeTesting.checked = true;
+
+  if (proposalType === PROPOSAL_TYPES.FIBREGLASS_POOL) {
+    fields.includeInstallation.checked = true;
+    fields.includeMepItems.checked = true;
+    fields.includeSurfacePreparation.checked = false;
+  } else if (proposalType === PROPOSAL_TYPES.FRP_WATERPROOFING) {
+    fields.includeInstallation.checked = false;
+    fields.includeMepItems.checked = false;
+    fields.includeSurfacePreparation.checked = true;
+  } else if (proposalType === PROPOSAL_TYPES.FRP_LAMINATION_MEP) {
+    fields.includeInstallation.checked = false;
+    fields.includeMepItems.checked = true;
+    fields.includeSurfacePreparation.checked = true;
+  } else if (proposalType === PROPOSAL_TYPES.MEP_ONLY) {
+    fields.includeInstallation.checked = true;
+    fields.includeMepItems.checked = true;
+    fields.includeSurfacePreparation.checked = false;
+  }
+}
+
+// ============= VALIDATION SYSTEM =============
+
+function validateMandatoryFields() {
+  const errors = [];
+  
+  // Check Client Name
+  const clientName = fields.clientName.value.trim();
+  if (!clientName) {
+    errors.push("Client Name");
+  }
+  
+  // Check Phone Number
+  const phoneRaw = String(fields.phone.value || "").trim();
+  const numericPhone = phoneRaw.replace(/\D/g, "");
+  if (!numericPhone) {
+    errors.push("Phone Number");
+  } else if (numericPhone.length < 10 || numericPhone.length > 15) {
+    errors.push("Phone Number (10-15 digits)");
+  }
+  
+  // Check Project Location
+  const location = fields.location.value.trim();
+  if (!location) {
+    errors.push("Project Location");
+  }
+  
+  // Check Proposal Date
+  const proposalDate = fields.proposalDate.value.trim();
+  if (!proposalDate) {
+    errors.push("Proposal Date");
+  }
+  
+  // Check Proposal Type
+  const proposalType = getProposalTypeFromField();
+  if (!proposalType) {
+    errors.push("Proposal Type");
+  }
+
+  // Check Pool Type / Existing Pool Type
+  if (proposalType === PROPOSAL_TYPES.FIBREGLASS_POOL) {
+    const poolType = fields.poolType.value.trim();
+    if (!poolType) {
+      errors.push("Pool Type");
+    }
+  } else {
+    const existingPoolType = fields.existingPoolType.value.trim();
+    if (!existingPoolType) {
+      errors.push("Existing Pool Type");
+    }
+  }
+  
+  // Check numeric dimensions
+  const proposalType = getProposalTypeFromField();
+
+  // Dimensions are not required for MEP Only proposals
+  if (proposalType !== PROPOSAL_TYPES.MEP_ONLY) {
+    const length = Number.parseFloat(fields.length.value);
+    if (!Number.isFinite(length) || length <= 0) {
+      errors.push("Length (must be > 0)");
+    }
+
+    const width = Number.parseFloat(fields.width.value);
+    if (!Number.isFinite(width) || width <= 0) {
+      errors.push("Width (must be > 0)");
+    }
+
+    const depth = Number.parseFloat(fields.depth.value);
+    if (!Number.isFinite(depth) || depth <= 0) {
+      errors.push("Depth (must be > 0)");
+    }
+  }
+  
+  return errors;
+}
+
+function showValidationError(fieldNames) {
+  if (fieldNames.length === 0) return true; // All valid
+  
+  const bulletList = fieldNames.map(name => `• ${name}`).join("\n");
+  const message = `Please complete the following required fields:\n\n${bulletList}`;
+  
+  // Create styled validation error dialog
+  const errorDialog = document.createElement("div");
+  errorDialog.className = "validation-error-dialog";
+  errorDialog.style.cssText = `
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    border: 2px solid #ef4444;
+    border-radius: 8px;
+    padding: 24px;
+    max-width: 400px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    z-index: 10001;
+    font-family: system-ui, -apple-system, sans-serif;
+  `;
+  
+  errorDialog.innerHTML = `
+    <div style="margin-bottom: 16px; font-weight: 600; color: #dc2626; font-size: 16px;">
+      ⚠️ Missing Required Fields
+    </div>
+    <div style="white-space: pre-wrap; color: #374151; font-size: 14px; line-height: 1.6; margin-bottom: 16px;">
+      ${fieldNames.map(name => `<div>• ${name}</div>`).join("")}
+    </div>
+    <button id="validationOkBtn" style="
+      background: #ef4444;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      width: 100%;
+    ">OK</button>
+  `;
+  
+  // Add semi-transparent overlay
+  const overlay = document.createElement("div");
+  overlay.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.3);
+    z-index: 10000;
+  `;
+  
+  document.body.appendChild(overlay);
+  document.body.appendChild(errorDialog);
+  
+  const okBtn = errorDialog.querySelector("#validationOkBtn");
+  okBtn.addEventListener("click", () => {
+    errorDialog.remove();
+    overlay.remove();
+  });
+  
+  // Close on overlay click
+  overlay.addEventListener("click", () => {
+    errorDialog.remove();
+    overlay.remove();
+  });
+  
+  return false;
+}
+
+function hasValidFields() {
+  const errors = validateMandatoryFields();
+  return errors.length === 0;
 }
 
 function getDefaultMepItemsForProposalType(proposalType) {
@@ -572,8 +767,35 @@ function buildProposalState() {
   const shellAmount = hasDimensions ? fieldValueOrDefault(fields.shellUnitPrice, defaultShell) : 0;
   const installationAmount = hasDimensions ? fieldValueOrDefault(fields.installationUnitPrice, defaultInstallation) : 0;
   const mepAmount = hasDimensions ? fieldValueOrDefault(fields.mepUnitPrice, chart?.mep ?? 0) : 0;
-  const adjustedSubtotal = shellAmount + installationAmount + mepAmount;
+
+  // Checkbox-driven inclusion of commercial lines
+  const includeMain = fields.includeMainWorks?.checked ?? true;
+  const includeInstallation = fields.includeInstallation?.checked ?? false;
+  const includeSurface = fields.includeSurfacePreparation?.checked ?? false;
+  const includeMep = fields.includeMepItems?.checked ?? true;
+
+  let adjustedSubtotal = 0;
+  // Main works (shell)
+  if (includeMain) adjustedSubtotal += shellAmount;
+
+  // Installation / Surface mapping:
+  // - For FRP proposals, Surface Preparation (if checked) uses the installation amount
+  // - Otherwise, Installation / Positioning (if checked) uses the installation amount
+  if (proposalType === PROPOSAL_TYPES.FRP_WATERPROOFING || proposalType === PROPOSAL_TYPES.FRP_LAMINATION_MEP) {
+    if (includeSurface) adjustedSubtotal += installationAmount;
+    else if (includeInstallation) adjustedSubtotal += installationAmount;
+  } else {
+    if (includeInstallation) adjustedSubtotal += installationAmount;
+  }
+
+  // MEP only included when checked and not for pure FRP Waterproofing
+  if (includeMep && proposalType !== PROPOSAL_TYPES.FRP_WATERPROOFING) adjustedSubtotal += mepAmount;
+
   const gst = Math.round(adjustedSubtotal * (gstRate / 100));
+  
+  if (proposalType === PROPOSAL_TYPES.FRP_WATERPROOFING && Array.isArray(state.mepItems) && state.mepItems.length > 0) {
+    state.mepItems = [];
+  }
   const grandTotal = fields.includeGst.checked ? adjustedSubtotal + gst : adjustedSubtotal;
   const dimensions = hasDimensions
     ? `${formatMeasurement(length)} x ${formatMeasurement(width)} x ${formatMeasurement(depth)} ${unit}`
@@ -642,7 +864,12 @@ function buildProposalState() {
     mepItems: Array.isArray(state.mepItems) ? state.mepItems : [],
     matchText,
     isRcc: isRccWaterproofing(poolType),
-    existingPoolType: fields.existingPoolType.value
+    existingPoolType: fields.existingPoolType.value,
+    includeMainWorks,
+    includeInstallation,
+    includeSurfacePreparation,
+    includeMepItems,
+    includeTesting
   };
 }
 
@@ -651,7 +878,7 @@ function proposalIntroHtml(state) {
   const location = escapeHtml(state.location);
   // FRP Waterproofing / Lamination proposals: technical waterproofing wording (no brand mentions)
   if (state.proposalType === PROPOSAL_TYPES.FRP_WATERPROOFING || state.proposalType === PROPOSAL_TYPES.FRP_LAMINATION_MEP) {
-    return `Dear Sir,<br><br>Thank you for your interest. With reference to your enquiry for FRP waterproofing and lamination works for your existing RCC swimming pool at ${location}, we are pleased to submit our technical proposal detailing the scope of work, materials, methodology and commercial terms.<br><br>The proposed treatment system is designed to improve waterproofing performance, structural durability and long-term serviceability of the pool structure.<br><br>Warm regards,<br>Technical Team`;
+    return `Dear Valued Client,<br><br>Thank you for your interest in our FRP waterproofing and lamination solutions.<br><br>With reference to your enquiry for treatment and restoration works for your existing swimming pool at ${location}, we are pleased to submit our technical proposal detailing the scope of work, materials, methodology, commercials, and project schedule.<br><br>The proposed treatment system is designed to improve waterproofing performance, structural durability, and long-term serviceability of the pool structure.<br><br>Should you require any clarification or technical assistance, we will be pleased to assist.<br><br>Warm regards,<br>Team Fybron Pools`;
   }
 
   // MEP only proposals: equipment & installation wording
@@ -660,23 +887,35 @@ function proposalIntroHtml(state) {
   }
 
   // Default: fibreglass product proposal wording (keeps previous product tone)
-  return `Dear Sir,<br><br>Thank you for your interest in our composite pool solutions. With reference to your enquiry for the supply and installation of a custom-made fibreglass pool at ${location}, we are pleased to submit our quotation for ${client}. Please find the attached proposal detailing the scope and pricing. Should you need any clarification or technical assistance, we will be glad to assist.<br><br>Warm regards,<br>Team`;
+  return `Dear Valued Client,<br><br>Thank you for your interest in our FRP/GRP pool solutions. With reference to your enquiry for the supply and installation of a custom-made fibreglass pool at ${location}, we are pleased to submit our quotation for ${client}.<br><br>Please find the attached proposal detailing the scope and pricing.<br><br>Should you need any clarification or technical assistance, we will be glad to assist.<br><br>Warm regards,<br>Team Fybron Pools`;
+}
+
+function proposalTitleText(state) {
+  if (state.proposalType === PROPOSAL_TYPES.FRP_WATERPROOFING) {
+    return "Proposal for FRP Waterproofing & Lamination Works";
+  }
+  if (state.proposalType === PROPOSAL_TYPES.FRP_LAMINATION_MEP) {
+    return "Proposal for FRP Waterproofing, Lamination & MEP Works";
+  }
+  if (state.proposalType === PROPOSAL_TYPES.MEP_ONLY) {
+    return "Proposal for MEP & Water Treatment System";
+  }
+  return `Proposal for ${state.poolType}`;
 }
 
 function renderSpecifications(state) {
   // Render specifications differently depending on proposal type
   if (isFrpProposal(state.proposalType)) {
-    // FRP / Waterproofing proposals focus on existing RCC pool details and finish
     output.specList.innerHTML = `
-      <dt>Pool Type</dt><dd>${escapeHtml(state.poolType)}</dd>
       <dt>Shape</dt><dd>Rectangular</dd>
       <dt>Dimensions</dt><dd>${escapeHtml(state.dimensions)}${state.unit === "ft" ? ` (${escapeHtml(state.dimensionsM)})` : ""}</dd>
-      <dt>Pool Area</dt><dd>${escapeHtml(state.areaText)}</dd>
-      <dt>Pool Volume</dt><dd>${escapeHtml(state.volumeText)}</dd>
-      <dt>Finish</dt><dd>RCC Concrete Surface</dd>
+      <dt>Treatment Area</dt><dd>${escapeHtml(String(state.treatmentArea.totalArea))} sq.m / ${escapeHtml(String(state.treatmentArea.totalAreaFt))} sq.ft</dd>
+      <dt>Approx Water Volume</dt><dd>${escapeHtml(state.volumeText)}</dd>
+      <dt>Finish</dt><dd>RCC concrete surface prepared for FRP lamination</dd>
     `;
   } else if (state.proposalType === PROPOSAL_TYPES.MEP_ONLY) {
     output.specList.innerHTML = `
+      <dt>Existing Pool Type</dt><dd>${escapeHtml(state.existingPoolType || state.poolType)}</dd>
       <dt>Pool Type</dt><dd>${escapeHtml(state.poolType)}</dd>
       <dt>Dimensions</dt><dd>${escapeHtml(state.dimensions)}</dd>
       <dt>Pool Volume</dt><dd>${escapeHtml(state.volumeText)}</dd>
@@ -707,9 +946,12 @@ function renderExistingPoolDetails(state) {
   }
 
   // Existing Pool Details for FRP proposals
+  const showConstructionType = state.proposalType !== PROPOSAL_TYPES.FRP_LAMINATION_MEP;
+  const constructionHtml = showConstructionType ? `<dt>Construction Type</dt><dd>RCC (Reinforced Concrete)</dd>` : "";
+
   output.existingPoolSpecList.innerHTML = `
     <dt>Existing Pool Type</dt><dd>${escapeHtml(state.poolType)}</dd>
-    <dt>Construction Type</dt><dd>RCC (Reinforced Concrete)</dd>
+    ${constructionHtml}
     <dt>Length</dt><dd>${escapeHtml(state.dimensions.split(' x ')[0])} ${state.unit}</dd>
     <dt>Width</dt><dd>${escapeHtml(state.dimensions.split(' x ')[1])} ${state.unit}</dd>
     <dt>Depth</dt><dd>${escapeHtml(state.dimensions.split(' x ')[2].split(' ')[0])} ${state.unit}</dd>
@@ -746,7 +988,7 @@ function renderTechnicalSummary(state) {
   
   if (state.proposalType === PROPOSAL_TYPES.FIBREGLASS_POOL) {
     lines = [
-      "Factory-manufactured FRP/GRP fibreglass pool shell with premium gelcoat finish.",
+      "Engineered FRP/GRP fibreglass pool shell with premium gelcoat finish.",
       "Complete supply, positioning, installation, and commissioning included as per approved proposal scope.",
       "MEP integration includes filtration system, plumbing lines, underwater lighting, accessories, and related fittings as specified.",
       "Exterior protective flow-coat finish designed for enhanced structural durability and bonding stability.",
@@ -791,28 +1033,6 @@ function renderTechnicalSummary(state) {
 }
 
 function renderPriceSummary(state) {
-  let shellDescription = "";
-  let installationDescription = "";
-  let mepDescription = "";
-
-  if (state.proposalType === PROPOSAL_TYPES.FRP_WATERPROOFING) {
-    shellDescription = `FRP Waterproofing & Lamination Works<br><small>RCC pool size: ${escapeHtml(state.dimensions)}</small>`;
-    installationDescription = "Surface preparation, restoration, testing & handover";
-    mepDescription = "Filtration and ancillary MEP items (if included)";
-  } else if (state.proposalType === PROPOSAL_TYPES.FRP_LAMINATION_MEP) {
-    shellDescription = `FRP Waterproofing, Lamination & MEP Works<br><small>RCC pool size: ${escapeHtml(state.dimensions)}</small>`;
-    installationDescription = "Surface preparation, lamination works, testing & commissioning";
-    mepDescription = "Complete MEP system supply, installation & commissioning";
-  } else if (state.proposalType === PROPOSAL_TYPES.MEP_ONLY) {
-    shellDescription = `MEP & Water Treatment System<br><small>Pool size: ${escapeHtml(state.dimensions)}</small>`;
-    installationDescription = "Supply, installation, testing & commissioning of MEP systems";
-    mepDescription = "Filtration, pumps, electrical, plumbing & accessories";
-  } else {
-    shellDescription = `${escapeHtml(state.poolType)} Shell<br><small>Size: ${escapeHtml(state.dimensions)}</small>`;
-    installationDescription = "Positioning, Installation, Testing & Pool commissioning";
-    mepDescription = "Pumps, Filter, Pipelines, Electrification (MEP) & Pool Accessories";
-  }
-
   if (!state.hasDimensions) {
     output.quoteRows.innerHTML = `
       <tr><td colspan="4">Enter pool dimensions to calculate pricing.</td></tr>
@@ -822,10 +1042,44 @@ function renderPriceSummary(state) {
     return;
   }
 
-  output.quoteRows.innerHTML = `
-    <tr><td>${shellDescription}</td><td>${INR.format(state.shellAmount)}</td><td>1</td><td>${INR.format(state.shellAmount)}</td></tr>
-    <tr><td>${installationDescription}</td><td>${INR.format(state.installationAmount)}</td><td>1</td><td>${INR.format(state.installationAmount)}</td></tr>
-    <tr><td>${mepDescription}</td><td>${INR.format(state.mepAmount)}</td><td>1</td><td>${INR.format(state.mepAmount)}</td></tr>
+  const selected = {
+    main: state.includeMainWorks ?? true,
+    installation: state.includeInstallation ?? false,
+    mep: state.includeMepItems ?? true,
+    surface: state.includeSurfacePreparation ?? false,
+    testing: state.includeTesting ?? true
+  };
+
+  const rows = [];
+
+  if (state.proposalType === PROPOSAL_TYPES.FIBREGLASS_POOL) {
+    if (selected.main) rows.push({ description: "Engineered FRP/GRP Pool Shell", amount: state.shellAmount });
+    if (selected.installation) rows.push({ description: "Positioning, Installation & Commissioning", amount: state.installationAmount });
+    if (selected.mep) rows.push({ description: "MEP & Water Treatment System", amount: state.mepAmount });
+    if (selected.surface) rows.push({ description: "Surface Preparation & Restoration", amount: 0 });
+  } else if (state.proposalType === PROPOSAL_TYPES.FRP_WATERPROOFING) {
+    if (selected.main) rows.push({ description: "FRP Waterproofing & Lamination Works", amount: state.shellAmount });
+    if (selected.surface) rows.push({ description: "Surface Preparation & Restoration", amount: state.installationAmount });
+  } else if (state.proposalType === PROPOSAL_TYPES.FRP_LAMINATION_MEP) {
+    if (selected.main) rows.push({ description: "FRP Waterproofing & Lamination Works", amount: state.shellAmount });
+    if (selected.surface) rows.push({ description: "Surface Preparation & Restoration", amount: state.installationAmount });
+    if (selected.mep) rows.push({ description: "MEP & Water Treatment System", amount: state.mepAmount });
+    if (selected.installation && !selected.surface) rows.push({ description: "Positioning, Installation & Commissioning", amount: state.installationAmount });
+  } else if (state.proposalType === PROPOSAL_TYPES.MEP_ONLY) {
+    if (selected.main || selected.installation || selected.mep) rows.push({ description: "MEP & Water Treatment System", amount: state.mepAmount });
+    if (selected.surface) rows.push({ description: "Surface Preparation & Restoration", amount: 0 });
+  }
+
+  output.quoteRows.innerHTML = rows.map((row) => `
+    <tr>
+      <td>${escapeHtml(row.description)}</td>
+      <td>${row.amount ? INR.format(row.amount) : ""}</td>
+      <td>1</td>
+      <td>${row.amount ? INR.format(row.amount) : ""}</td>
+    </tr>
+  `).join("");
+
+  output.quoteRows.innerHTML += `
     <tr><td><strong>Total</strong></td><td></td><td></td><td><strong>${INR.format(state.adjustedSubtotal)}</strong></td></tr>
     ${fields.includeGst.checked ? `<tr><td>GST</td><td>${decimalFormat.format(state.gstRate)}%</td><td></td><td>${INR.format(state.gst)}</td></tr>` : ""}
   `;
@@ -985,15 +1239,12 @@ function render() {
   output.surfaceArea.textContent = state.areaText;
   output.volume.textContent = state.volumeText;
   output.estimate.textContent = state.hasDimensions ? INR.format(state.grandTotal) : "Awaiting dimensions";
-  output.proposalTitle.textContent = `Proposal for ${state.poolType}`;
-  output.outClient.textContent = state.client;
-  output.outLocation.textContent = state.location;
+  output.proposalTitle.textContent = proposalTitleText(state);
+  output.outClient.textContent = state.client || "—";
+  output.outLocation.textContent = state.location || "—";
   output.outDate.textContent = formatDate(state.proposalDate);
   output.outValidUntil.textContent = formatDate(state.validUntil);
-  output.outQuoteNo.textContent = fields.quoteNo.value.trim() || "Draft";
-  if (output.outRevision) {
-    output.outRevision.textContent = state.revision_no;
-  }
+  output.outQuoteNo.textContent = normalizeQuoteNumberDisplay(fields.quoteNo.value.trim()) || "Draft";
   output.proposalIntro.innerHTML = proposalIntroHtml(state);
   output.poolImageSize.textContent = state.hasDimensions ? `Size: ${state.dimensions}` : "Awaiting dimensions";
   renderSpecifications(state);
@@ -1148,8 +1399,8 @@ function renderPoolDiagram(length, width, depth, dimensionLabel) {
 
 function updateProposalLayoutVisibility(state) {
   const isFibreglass = state.proposalType === PROPOSAL_TYPES.FIBREGLASS_POOL;
-  const isRccOrFrp = state.proposalType === PROPOSAL_TYPES.FRP_WATERPROOFING || 
-                     state.proposalType === PROPOSAL_TYPES.FRP_LAMINATION_MEP;
+  const isExistingPool = isExistingPoolProposal(state.proposalType);
+  const isRccOrFrp = isFrpProposal(state.proposalType);
   const isMepOnly = state.proposalType === PROPOSAL_TYPES.MEP_ONLY;
   
   // Show/hide fibreglass benefits section
@@ -1159,12 +1410,12 @@ function updateProposalLayoutVisibility(state) {
   
   // Show/hide pool specifications section
   if (output.poolSpecificationsSection) {
-    output.poolSpecificationsSection.hidden = isMepOnly;
+    output.poolSpecificationsSection.hidden = isFibreglass;
   }
   
   // Show/hide existing pool details section
   if (output.existingPoolDetailsSection) {
-    output.existingPoolDetailsSection.hidden = !isRccOrFrp;
+    output.existingPoolDetailsSection.hidden = !isExistingPool;
   }
   
   // Show/hide pool image card
@@ -1182,12 +1433,47 @@ function updateProposalLayoutVisibility(state) {
     fields.poolTypeFieldWrapper.hidden = !isFibreglass;
   }
   if (fields.existingPoolTypeFieldWrapper) {
-    fields.existingPoolTypeFieldWrapper.hidden = isFibreglass;
+    fields.existingPoolTypeFieldWrapper.hidden = !isExistingPool;
   }
 
   // Hide the fibreglass scope editor for non-fibreglass proposals
   if (fields.scopeFieldWrapper) {
     fields.scopeFieldWrapper.hidden = !isFibreglass;
+  }
+
+  // MEP UI visibility: hide MEP panel and items for pure FRP waterproofing, or if checkbox unchecked
+  const mepPanelEl = document.querySelector('.mep-panel');
+  const itemsTableEl = document.querySelector('.items-table');
+  const isMepCheckboxChecked = fields.includeMepItems?.checked ?? true;
+  const canShowMep = state.proposalType === PROPOSAL_TYPES.MEP_ONLY || state.proposalType === PROPOSAL_TYPES.FIBREGLASS_POOL || state.proposalType === PROPOSAL_TYPES.FRP_LAMINATION_MEP;
+  const showMep = canShowMep && isMepCheckboxChecked && state.proposalType !== PROPOSAL_TYPES.FRP_WATERPROOFING;
+  if (mepPanelEl) mepPanelEl.hidden = !showMep;
+  if (mepElements?.addButton) mepElements.addButton.hidden = !showMep;
+  if (itemsTableEl) itemsTableEl.hidden = !showMep;
+  const proposedMepHeading = document.getElementById('proposedMepHeading');
+  if (proposedMepHeading) proposedMepHeading.hidden = !showMep;
+
+  // Commercial inputs: show/hide shell/installation/MEP pricing per proposal type
+  const shellLabel = fields.shellUnitPrice?.parentElement;
+  const installLabel = fields.installationUnitPrice?.parentElement;
+  const mepLabel = fields.mepUnitPrice?.parentElement;
+
+  if (state.proposalType === PROPOSAL_TYPES.MEP_ONLY) {
+    if (shellLabel) shellLabel.hidden = true;
+    if (installLabel) installLabel.hidden = true;
+    if (mepLabel) mepLabel.hidden = false;
+  } else if (state.proposalType === PROPOSAL_TYPES.FRP_WATERPROOFING) {
+    if (shellLabel) shellLabel.hidden = true;
+    if (installLabel) installLabel.hidden = true;
+    if (mepLabel) mepLabel.hidden = true;
+  } else if (state.proposalType === PROPOSAL_TYPES.FRP_LAMINATION_MEP) {
+    if (shellLabel) shellLabel.hidden = true;
+    if (installLabel) installLabel.hidden = true;
+    if (mepLabel) mepLabel.hidden = !isMepCheckboxChecked;
+  } else if (state.proposalType === PROPOSAL_TYPES.FIBREGLASS_POOL) {
+    if (shellLabel) shellLabel.hidden = false;
+    if (installLabel) installLabel.hidden = false;
+    if (mepLabel) mepLabel.hidden = !isMepCheckboxChecked;
   }
 }
 
@@ -1198,30 +1484,40 @@ function setToday() {
 }
 
 setToday();
+setCommercialCheckboxDefaults(getProposalTypeFromField());
 updateActionButtons();
-if (!fields.quoteNo.value.trim()) {
-  ensureQuoteNumber().then(() => render()).catch((error) => {
-    console.warn("Quote number initialization failed:", error?.message || error);
-    render();
-  });
-}
+// DO NOT auto-generate quote numbers on page load
+// Quote numbers are only generated on the first successful Save
+render();
 form.addEventListener("input", (event) => {
   markUnsavedChanges();
   render();
+  updateQuotePreviewIfPossible();
 });
 form.addEventListener("change", (event) => {
   markUnsavedChanges();
   render();
+  updateQuotePreviewIfPossible();
 });
 
 // Handle proposal type change to update MEP items
 fields.proposalTypeField?.addEventListener("change", () => {
   const proposalType = getProposalTypeFromField();
-  const defaults = getDefaultMepItemsForProposalType(proposalType);
-  // Only auto-load defaults if no items are currently set or user is starting fresh
-  if (state.mepItems.length === 0) {
+  setCommercialCheckboxDefaults(proposalType);
+
+  if (proposalType === PROPOSAL_TYPES.FIBREGLASS_POOL) {
+    if (fields.existingPoolType) {
+      fields.existingPoolType.value = "";
+    }
+  }
+
+  if (proposalType === PROPOSAL_TYPES.FRP_WATERPROOFING) {
+    setMepItems([]);
+  } else {
+    const defaults = getDefaultMepItemsForProposalType(proposalType);
     setMepItems(defaults);
   }
+
   render();
 });
 
@@ -1260,6 +1556,7 @@ mepElements.container?.addEventListener("click", (event) => {
 
 loadMepItems(undefined, fields.poolType.value);
 render();
+setRevisionControlsVisible(false);
 
 // Save, search, and edit-mode functionality
 function collectQuotationData({ forUpdate = false } = {}) {
@@ -1292,11 +1589,16 @@ function collectQuotationData({ forUpdate = false } = {}) {
     shell_price: numericInputValueOrNull(fields.shellUnitPrice),
     installation_price: numericInputValueOrNull(fields.installationUnitPrice),
     mep_price: numericInputValueOrNull(fields.mepUnitPrice),
-    mep_items: state.mepItems,
+    mep_items: state.proposalType === PROPOSAL_TYPES.FRP_WATERPROOFING ? [] : state.mepItems,
     subtotal: state.adjustedSubtotal,
     gst_amount: state.gst,
     grand_total: state.grandTotal,
     include_gst: fields.includeGst.checked,
+    include_main_works: fields.includeMainWorks.checked,
+    include_installation: fields.includeInstallation.checked,
+    include_mep_items: fields.includeMepItems.checked,
+    include_surface_preparation: fields.includeSurfacePreparation.checked,
+    include_testing: fields.includeTesting.checked,
     existing_pool_type: state.existingPoolType || null,
     revision_no: state.revision_no,
     scope: fields.scope.value.trim(),
@@ -1320,6 +1622,26 @@ function collectQuotationData({ forUpdate = false } = {}) {
   return data;
 }
 
+const OPTIONAL_SUPABASE_COLUMNS = [
+  "last_modified",
+  "mep_items",
+  "include_main_works",
+  "include_installation",
+  "include_mep_items",
+  "include_surface_preparation",
+  "include_testing"
+];
+
+function buildFallbackData(error, data) {
+  const fallbackData = { ...data };
+  OPTIONAL_SUPABASE_COLUMNS.forEach((column) => {
+    if (error?.message?.includes(column)) {
+      delete fallbackData[column];
+    }
+  });
+  return fallbackData;
+}
+
 function setEditMode(quoteId) {
   currentQuoteId = quoteId || null;
   hasUnsavedChanges = false;
@@ -1331,17 +1653,29 @@ function setEditMode(quoteId) {
 function markUnsavedChanges() {
   if (currentQuoteId) {
     hasUnsavedChanges = true;
-    updateActionButtons();
   }
+  updateActionButtons();
 }
 
 function updateActionButtons() {
-  const enabled = Boolean(currentQuoteId) && !hasUnsavedChanges;
-  printButton.disabled = !enabled;
-  downloadPdfButton.disabled = !enabled;
+  const isValid = hasValidFields();
+  const canSave = isValid && (!currentQuoteId || hasUnsavedChanges);
+  saveButton.disabled = !canSave;
+
+  const enableExtras = Boolean(currentQuoteId) && !hasUnsavedChanges && isValid;
+  printButton.disabled = !enableExtras;
+  downloadPdfButton.disabled = !enableExtras;
   if (fields.createRevisionButton) {
-    fields.createRevisionButton.disabled = !enabled;
+    const revisionVisible = Boolean(fields.revisionControls && !fields.revisionControls.hidden);
+    fields.createRevisionButton.disabled = !enableExtras || !revisionVisible;
   }
+}
+
+function setRevisionControlsVisible(visible) {
+  if (!fields.revisionControls) return;
+  fields.revisionControls.hidden = !visible;
+  fields.revisionControls.classList.toggle("visible", visible);
+  updateActionButtons();
 }
 
 function parseQuoteNumberParts(quoteNumber) {
@@ -1364,11 +1698,49 @@ function parseQuoteSequence(quoteNumber) {
   return Number(match[1]);
 }
 
+function areMandatoryFieldsPopulated() {
+  // Use the central validator to determine whether required fields are satisfied
+  const errors = validateMandatoryFields();
+  return Array.isArray(errors) && errors.length === 0;
+}
+
+async function updateQuotePreviewIfPossible() {
+  // Do not override existing quote numbers loaded from DB
+  if (fields.quoteNo && fields.quoteNo.value.trim()) return;
+
+  if (!areMandatoryFieldsPopulated()) {
+    if (previewQuoteGenerated) {
+      // clear preview
+      try { fields.quoteNo.value = ""; } catch (e) {}
+      previewQuoteGenerated = false;
+    }
+    return;
+  }
+
+  // Request next quote number and set as preview (race-protected)
+  const token = ++_previewQuoteToken;
+  try {
+    const next = await getNextQuoteNumber();
+    if (!next) return;
+    if (token !== _previewQuoteToken) return; // stale
+    fields.quoteNo.value = next;
+    previewQuoteGenerated = true;
+    render();
+  } catch (err) {
+    console.warn("Could not generate preview quote number:", err);
+  }
+}
+
+function normalizeQuoteNumberDisplay(quoteNumber) {
+  const value = String(quoteNumber || "").trim();
+  return value.replace(/^FY[-_]?/i, "");
+}
+
 function getCurrentQuotePrefix() {
   const now = new Date();
   const year = now.getFullYear();
   const month = String(now.getMonth() + 1).padStart(2, "0");
-  return `FY-Q${year}${month}`;
+  return `Q${year}${month}`;
 }
 
 function formatQuoteBaseNumber(sequence) {
@@ -1386,15 +1758,27 @@ async function fetchLatestQuoteNumber() {
     const { data, error } = await supabaseClient
       .from("quotations")
       .select("quote_number")
-      .order("quote_number", { ascending: false })
-      .limit(1);
+      .order("created_at", { ascending: false })
+      .limit(50);
 
     if (error) {
       console.warn("Unable to fetch latest quote number:", error.message);
       return null;
     }
 
-    return data?.[0]?.quote_number || null;
+    const quoteNumbers = Array.isArray(data) ? data.map((row) => normalizeQuoteNumberDisplay(row.quote_number)) : [];
+    let latest = null;
+    let highestSequence = -1;
+
+    for (const quote of quoteNumbers) {
+      const sequence = parseQuoteSequence(quote);
+      if (Number.isFinite(sequence) && sequence > highestSequence) {
+        highestSequence = sequence;
+        latest = quote;
+      }
+    }
+
+    return latest || quoteNumbers[0] || null;
   } catch (err) {
     console.warn("Quote number lookup failed:", err.message);
     return null;
@@ -1436,6 +1820,13 @@ function createRevision() {
   return (async () => {
     if (!currentQuoteId) {
       alert("Please save the proposal before creating a revision.");
+      return;
+    }
+
+    // VALIDATE mandatory fields first
+    const validationErrors = validateMandatoryFields();
+    if (validationErrors.length > 0) {
+      showValidationError(validationErrors);
       return;
     }
 
@@ -1558,6 +1949,7 @@ function populateQuotationForm(quotation) {
     safeSet(fields.width, quotation.pool_width);
     safeSet(fields.depth, quotation.pool_depth);
     safeSet(fields.unit, quotation.measurement_unit || "m");
+    const loadedProposalType = quotation.proposal_type || PROPOSAL_TYPES.FIBREGLASS_POOL;
     safeSet(fields.poolType, quotation.pool_type || "Fibreglass In-Ground Skimmer Pool");
     safeSet(fields.existingPoolType, quotation.existing_pool_type || quotation.pool_type || "RCC In-Ground Pool");
     safeSet(fields.revision, quotation.revision_no ?? "R0");
@@ -1567,6 +1959,11 @@ function populateQuotationForm(quotation) {
     safeSet(fields.installationUnitPrice, quotation.installation_price ?? "");
     safeSet(fields.mepUnitPrice, quotation.mep_price ?? "");
     fields.includeGst.checked = Boolean(quotation.include_gst);
+    fields.includeMepItems.checked = quotation.include_mep_items !== undefined ? Boolean(quotation.include_mep_items) : true;
+    fields.includeMainWorks.checked = quotation.include_main_works !== undefined ? Boolean(quotation.include_main_works) : true;
+    fields.includeInstallation.checked = quotation.include_installation !== undefined ? Boolean(quotation.include_installation) : (loadedProposalType === PROPOSAL_TYPES.FIBREGLASS_POOL || loadedProposalType === PROPOSAL_TYPES.MEP_ONLY);
+    fields.includeSurfacePreparation.checked = quotation.include_surface_preparation !== undefined ? Boolean(quotation.include_surface_preparation) : (loadedProposalType === PROPOSAL_TYPES.FRP_WATERPROOFING || loadedProposalType === PROPOSAL_TYPES.FRP_LAMINATION_MEP);
+    fields.includeTesting.checked = quotation.include_testing !== undefined ? Boolean(quotation.include_testing) : true;
     safeSet(fields.scope, quotation.scope);
     safeSet(fields.notes, quotation.notes);
     safeSet(fields.preparedByName, quotation.prepared_by_name ?? quotation.prepared_by ?? "Krishna Chandran");
@@ -1619,7 +2016,7 @@ function renderSearchResults(rows) {
         const revision = row.revision_no || parseQuoteNumberParts(row.quote_number)?.revision || "R0";
         return `
           <tr>
-            <td>${escapeHtml(row.quote_number || "Draft")}</td>
+            <td>${escapeHtml(normalizeQuoteNumberDisplay(row.quote_number) || "Draft")}</td>
             <td>${escapeHtml(revision)}</td>
             <td>${escapeHtml(row.client_name || "Client")}</td>
             <td>${escapeHtml(row.phone || "-")}</td>
@@ -1638,7 +2035,7 @@ function renderSearchResults(rows) {
         console.error(`⚠️ Error rendering row for quote "${row.quote_number}":`, rowError);
         return `
           <tr>
-            <td>${escapeHtml(row.quote_number || "Draft")}</td>
+            <td>${escapeHtml(normalizeQuoteNumberDisplay(row.quote_number) || "Draft")}</td>
             <td>${escapeHtml(row.client_name || "Client")}</td>
             <td>${escapeHtml(row.phone || "-")}</td>
             <td>-</td>
@@ -1757,6 +2154,7 @@ async function loadQuotation(quoteId, { printAfterLoad = false, mode = "open" } 
 
     setSearchStatus(`${quotation.quote_number || "Proposal"} loaded in edit mode.`);
     showSuccessMessage(mode === "edit" ? "Proposal ready to edit." : "Proposal loaded successfully.");
+    setRevisionControlsVisible(mode !== "print");
 
     // Scroll to form for better UX
     const formPanel = document.querySelector(".input-panel");
@@ -1780,11 +2178,19 @@ async function saveProposalToSupabase() {
     return;
   }
 
+  // VALIDATE mandatory fields first
+  const validationErrors = validateMandatoryFields();
+  if (validationErrors.length > 0) {
+    showValidationError(validationErrors);
+    return;
+  }
+
   const isUpdate = Boolean(currentQuoteId);
   saveButton.disabled = true;
   saveButton.textContent = isUpdate ? "Updating..." : "Saving...";
 
   try {
+    // Only generate quote number on first successful save (not for updates)
     if (!isUpdate) {
       await ensureQuoteNumber();
     }
@@ -1799,21 +2205,9 @@ async function saveProposalToSupabase() {
         .eq("id", currentQuoteId)
         .select());
 
-      if (error && error.message?.includes("last_modified")) {
-        console.warn("The quotations table is missing last_modified. Retrying update without that column.", error);
-        const fallbackData = { ...quotationData };
-        delete fallbackData.last_modified;
-        ({ data, error } = await supabaseClient
-          .from("quotations")
-          .update(fallbackData)
-          .eq("id", currentQuoteId)
-          .select());
-      }
-
-      if (error && error.message?.includes("mep_items")) {
-        console.warn("The quotations table is missing mep_items. Retrying update without that column.", error);
-        const fallbackData = { ...quotationData };
-        delete fallbackData.mep_items;
+      if (error && OPTIONAL_SUPABASE_COLUMNS.some((column) => error.message?.includes(column))) {
+        console.warn("The quotations table is missing one or more optional columns. Retrying update without those columns.", error);
+        const fallbackData = buildFallbackData(error, quotationData);
         ({ data, error } = await supabaseClient
           .from("quotations")
           .update(fallbackData)
@@ -1822,10 +2216,9 @@ async function saveProposalToSupabase() {
       }
     } else {
       ({ data, error } = await supabaseClient.from("quotations").insert([quotationData]).select());
-      if (error && error.message?.includes("mep_items")) {
-        console.warn("The quotations table is missing mep_items. Retrying insert without that column.", error);
-        const fallbackData = { ...quotationData };
-        delete fallbackData.mep_items;
+      if (error && OPTIONAL_SUPABASE_COLUMNS.some((column) => error.message?.includes(column))) {
+        console.warn("The quotations table is missing one or more optional columns. Retrying insert without those columns.", error);
+        const fallbackData = buildFallbackData(error, quotationData);
         ({ data, error } = await supabaseClient.from("quotations").insert([fallbackData]).select());
       }
     }
@@ -1844,6 +2237,7 @@ async function saveProposalToSupabase() {
     }
 
     showSuccessMessage(isUpdate ? "Proposal updated successfully" : "Proposal saved successfully");
+    render();
     updateActionButtons();
     console.log(isUpdate ? "Updated proposal:" : "Saved proposal:", data);
   } catch (err) {
@@ -1945,6 +2339,13 @@ function generatePdfFilename() {
 async function downloadProposalPdf() {
   if (!downloadPdfButton) return;
   
+  // VALIDATE mandatory fields first
+  const validationErrors = validateMandatoryFields();
+  if (validationErrors.length > 0) {
+    showValidationError(validationErrors);
+    return;
+  }
+  
   downloadPdfButton.disabled = true;
   downloadPdfButton.textContent = "Generating...";
   
@@ -1961,9 +2362,11 @@ async function downloadProposalPdf() {
       return;
     }
 
-    // Hide notifications during PDF generation
-    const notifications = document.querySelectorAll(".proposal-notification");
+    // Hide notifications and search status during PDF generation
+    const notifications = document.querySelectorAll(".proposal-notification, .validation-error-dialog");
     notifications.forEach(n => n.style.display = "none");
+    const statuses = document.querySelectorAll(".search-status, #searchStatus");
+    statuses.forEach(s => s.style.display = "none");
 
     const filename = generatePdfFilename();
     
@@ -1995,7 +2398,15 @@ if (fields.createRevisionButton) {
 }
 
 saveButton.addEventListener("click", saveProposalToSupabase);
-printButton.addEventListener("click", () => window.print());
+printButton.addEventListener("click", () => {
+  // Validate before printing
+  const validationErrors = validateMandatoryFields();
+  if (validationErrors.length > 0) {
+    showValidationError(validationErrors);
+    return;
+  }
+  window.print();
+});
 downloadPdfButton?.addEventListener("click", downloadProposalPdf);
 if (fields.createRevisionButton) {
   fields.createRevisionButton.addEventListener("click", createRevision);

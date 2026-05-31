@@ -53,6 +53,11 @@ CREATE TABLE quotations (
   gst_amount NUMERIC,
   grand_total NUMERIC,
   include_gst BOOLEAN,
+  include_main_works BOOLEAN,
+  include_installation BOOLEAN,
+  include_mep_items BOOLEAN,
+  include_surface_preparation BOOLEAN,
+  include_testing BOOLEAN,
   scope TEXT,
   notes TEXT,
   prepared_by VARCHAR(255),
@@ -83,6 +88,11 @@ ALTER TABLE quotations ADD COLUMN IF NOT EXISTS prepared_by_phone VARCHAR(50);
 ALTER TABLE quotations ADD COLUMN IF NOT EXISTS approved_by_name VARCHAR(255);
 ALTER TABLE quotations ADD COLUMN IF NOT EXISTS approved_by_designation VARCHAR(255);
 ALTER TABLE quotations ADD COLUMN IF NOT EXISTS approved_by_phone VARCHAR(50);
+ALTER TABLE quotations ADD COLUMN IF NOT EXISTS include_main_works BOOLEAN;
+ALTER TABLE quotations ADD COLUMN IF NOT EXISTS include_installation BOOLEAN;
+ALTER TABLE quotations ADD COLUMN IF NOT EXISTS include_mep_items BOOLEAN;
+ALTER TABLE quotations ADD COLUMN IF NOT EXISTS include_surface_preparation BOOLEAN;
+ALTER TABLE quotations ADD COLUMN IF NOT EXISTS include_testing BOOLEAN;
 ALTER TABLE quotations ADD COLUMN IF NOT EXISTS last_modified TIMESTAMP WITH TIME ZONE;
 ```
 
