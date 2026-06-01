@@ -76,6 +76,8 @@ const fields = {
   shellUnitPrice: document.querySelector("#shellUnitPrice"),
   installationUnitPrice: document.querySelector("#installationUnitPrice"),
   mepUnitPrice: document.querySelector("#mepUnitPrice"),
+  surfacePreparationUnitPrice: document.getElementById("surfacePreparationUnitPrice"),
+  testingUnitPrice: document.getElementById("testingUnitPrice"),
   includeMainWorks: document.querySelector("#includeMainWorks"),
   includeInstallation: document.querySelector("#includeInstallation"),
   includeMepItems: document.querySelector("#includeMepItems"),
