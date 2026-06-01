@@ -764,11 +764,24 @@ function buildProposalState() {
   const shellAmount = hasDimensions ? fieldValueOrDefault(fields.shellUnitPrice, defaultShell) : 0;
   const installationAmount = hasDimensions ? fieldValueOrDefault(fields.installationUnitPrice, defaultInstallation) : 0;
   const mepAmount = hasDimensions ? fieldValueOrDefault(fields.mepUnitPrice, chart?.mep ?? 0) : 0;
-  
+  const surfaceAmount =
+  fields.includeSurfacePreparation?.checked
+    ? asNumber(fields.surfacePreparationUnitPrice, 0)
+    : 0;
+
+const testingAmount =
+  fields.includeTesting?.checked
+    ? asNumber(fields.testingUnitPrice, 0)
+    : 0;
   // Exclude MEP amount from totals if: checkbox unchecked, or pure FRP Waterproofing proposal
   const isMepCheckboxChecked = fields.includeMepItems?.checked ?? true;
   const includeMepInTotal = isMepCheckboxChecked && proposalType !== PROPOSAL_TYPES.FRP_WATERPROOFING;
-  const adjustedSubtotal = shellAmount + installationAmount + (includeMepInTotal ? mepAmount : 0);
+  const adjustedSubtotal =
+  shellAmount +
+  installationAmount +
+  (includeMepInTotal ? mepAmount : 0) +
+  surfaceAmount +
+  testingAmount;
   const gst = Math.round(adjustedSubtotal * (gstRate / 100));
   
   if (proposalType === PROPOSAL_TYPES.FRP_WATERPROOFING && Array.isArray(state.mepItems) && state.mepItems.length > 0) {
@@ -817,6 +830,8 @@ function buildProposalState() {
     shellAmount,
     installationAmount,
     mepAmount,
+    surfaceAmount,
+    testingAmount,
     adjustedSubtotal,
     gst,
     grandTotal,
@@ -1026,22 +1041,31 @@ function renderPriceSummary(state) {
     if (selected.main) rows.push({ description: "Engineered FRP/GRP Pool Shell", amount: state.shellAmount });
     if (selected.installation) rows.push({ description: "Positioning, Installation & Commissioning", amount: state.installationAmount });
     if (selected.mep) rows.push({ description: "MEP & Water Treatment System", amount: state.mepAmount });
-    if (selected.surface) rows.push({ description: "Surface Preparation & Restoration", amount: 0 });
-    if (selected.testing) rows.push({ description: "Testing & Commissioning", amount: 0 });
+    if (selected.surface) rows.push({ description: "Surface Preparation & Restoration", amount: state.surfaceAmount });
+    if (selected.testing) rows.push({ description: "Testing & Commissioning", amount: state.testingAmount });
   } else if (state.proposalType === PROPOSAL_TYPES.FRP_WATERPROOFING) {
     if (selected.main) rows.push({ description: "FRP Waterproofing & Lamination Works", amount: state.shellAmount });
-    if (selected.surface) rows.push({ description: "Surface Preparation & Restoration", amount: state.installationAmount });
-    if (selected.testing) rows.push({ description: "Testing & Commissioning", amount: 0 });
-  } else if (state.proposalType === PROPOSAL_TYPES.FRP_LAMINATION_MEP) {
+    if (selected.surface) rows.push({ description: "Surface Preparation & Restoration", amount: state.surfaceAmount });
+if (selected.testing) rows.push({
+  description: "Testing & Commissioning",
+  amount: state.testingAmount
+});  } else if (state.proposalType === PROPOSAL_TYPES.FRP_LAMINATION_MEP) {
     if (selected.main) rows.push({ description: "FRP Waterproofing & Lamination Works", amount: state.shellAmount });
-    if (selected.surface) rows.push({ description: "Surface Preparation & Restoration", amount: state.installationAmount });
-    if (selected.mep) rows.push({ description: "MEP & Water Treatment System", amount: state.mepAmount });
+if (selected.surface) rows.push({
+  description: "Surface Preparation & Restoration",
+  amount: state.surfaceAmount
+});    if (selected.mep) rows.push({ description: "MEP & Water Treatment System", amount: state.mepAmount });
     if (selected.installation && !selected.surface) rows.push({ description: "Positioning, Installation & Commissioning", amount: state.installationAmount });
-    if (selected.testing) rows.push({ description: "Testing & Commissioning", amount: 0 });
-  } else if (state.proposalType === PROPOSAL_TYPES.MEP_ONLY) {
+if (selected.testing) rows.push({
+  description: "Testing & Commissioning",
+  amount: state.testingAmount
+});  } else if (state.proposalType === PROPOSAL_TYPES.MEP_ONLY) {
     if (selected.main || selected.installation || selected.mep) rows.push({ description: "MEP & Water Treatment System", amount: state.mepAmount });
-    if (selected.surface) rows.push({ description: "Surface Preparation & Restoration", amount: 0 });
-    if (selected.testing) rows.push({ description: "Testing & Commissioning", amount: 0 });
+    if (selected.surface) rows.push({
+  description: "Surface Preparation & Restoration",
+  amount: state.surfaceAmount
+});
+    if (selected.testing) rows.push({ description: "Testing & Commissioning", amount: state.testingAmount });
   }
 
   output.quoteRows.innerHTML = rows.map((row) => `
