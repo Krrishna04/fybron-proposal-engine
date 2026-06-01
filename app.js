@@ -1564,11 +1564,11 @@ function collectQuotationData({ forUpdate = false } = {}) {
     gst_amount: state.gst,
     grand_total: state.grandTotal,
     include_gst: fields.includeGst.checked,
-    include_main_works: fields.includeMainWorks.checked,
-    include_installation: fields.includeInstallation.checked,
-    include_mep_items: fields.includeMepItems.checked,
-    include_surface_preparation: fields.includeSurfacePreparation.checked,
-    include_testing: fields.includeTesting.checked,
+    //include_main_works: fields.includeMainWorks.checked,
+    //include_installation: fields.includeInstallation.checked,
+   //include_mep_items: fields.includeMepItems.checked,
+    //include_surface_preparation: fields.includeSurfacePreparation.checked,
+    //include_testing: fields.includeTesting.checked,
     existing_pool_type: state.existingPoolType || null,
     revision_no: state.revision_no,
     scope: fields.scope.value.trim(),
@@ -1601,10 +1601,8 @@ function setEditMode(quoteId) {
 }
 
 function markUnsavedChanges() {
-  if (currentQuoteId) {
-    hasUnsavedChanges = true;
-    updateActionButtons();
-  }
+  hasUnsavedChanges = true;
+  updateActionButtons();
 }
 
 function updateActionButtons() {
