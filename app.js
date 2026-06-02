@@ -14,6 +14,7 @@ const state = {
 };
 let supabaseClient = null;
 let currentQuoteId = null;
+let currentQuotationJson = {};
 let hasUnsavedChanges = false;
 let searchDebounceTimer = null;
 // Preview state for quote number (not yet saved)
@@ -62,10 +63,13 @@ const fields = {
   proposalTypeField: document.querySelector("#proposalTypeField"),
   length: document.querySelector("#length"),
   width: document.querySelector("#width"),
+  depthLabel: document.querySelector("#depthLabel"),
   depth: document.querySelector("#depth"),
   unit: document.querySelector("#unit"),
   poolType: document.querySelector("#poolType"),
   bottomType: document.querySelector("#bottomType"),
+  deepEndDepth: document.querySelector("#deepEndDepth"),
+  deepEndDepthWrapper: document.querySelector("#deepEndDepthWrapper"),
   existingPoolType: document.querySelector("#existingPoolType"),
   revision: document.querySelector("#revision"),
   createRevisionButton: document.querySelector("#createRevision"),
@@ -452,6 +456,46 @@ function textValue(input, fallback = "") {
   return input?.value.trim() || fallback;
 }
 
+function normalizeBottomType(value) {
+  return value === "Sloped Bottom" ? "Sloped Bottom" : "Flat Bottom";
+}
+
+function formatDepthWithUnit(value, unit = "m") {
+  return `${formatMeasurement(value)}${unit}`;
+}
+
+function bottomSpecificationRows(state) {
+  if (!state.hasDimensions) {
+    return `
+      <dt>Bottom Type</dt><dd>${escapeHtml(state.bottomType)}</dd>
+      <dt>Depth</dt><dd>Awaiting dimensions</dd>
+    `;
+  }
+
+  if (state.bottomType === "Sloped Bottom") {
+    return `
+      <dt>Bottom Type</dt><dd>Sloped Bottom</dd>
+      <dt>Depth Profile</dt><dd>${escapeHtml(state.depthProfileText)}</dd>
+    `;
+  }
+
+  return `
+    <dt>Bottom Type</dt><dd>Flat Bottom</dd>
+    <dt>Depth</dt><dd>${escapeHtml(state.depthText)}</dd>
+  `;
+}
+
+function readQuotationJson(quotation) {
+  const raw = quotation?.quotation_json;
+  if (!raw) return {};
+  if (typeof raw === "object") return raw;
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return {};
+  }
+}
+
 function isRccWaterproofing(poolType) {
   return poolType === RCC_POOL_TYPE;
 }
@@ -568,6 +612,18 @@ function validateMandatoryFields() {
   const depth = Number.parseFloat(fields.depth.value);
   if (!Number.isFinite(depth) || depth <= 0) {
     errors.push("Depth (must be > 0)");
+  }
+
+  const bottomType = normalizeBottomType(fields.bottomType?.value);
+  if (bottomType === "Sloped Bottom") {
+    const deepEndDepth = Number.parseFloat(fields.deepEndDepth?.value);
+    const unit = fields.unit?.value || "m";
+    const shallowDepthM = Number.isFinite(depth) ? toMeters(depth, unit) : depth;
+    if (!Number.isFinite(deepEndDepth) || deepEndDepth <= 0) {
+      errors.push("Deep End Depth (required for Sloped Bottom)");
+    } else if (Number.isFinite(shallowDepthM) && deepEndDepth < shallowDepthM) {
+      errors.push("Deep End Depth (must be greater than or equal to shallow depth)");
+    }
   }
   
   return errors;
@@ -748,6 +804,8 @@ function buildProposalState() {
   const length = asNumber(fields.length, 0);
   const width = asNumber(fields.width, 0);
   const depth = asNumber(fields.depth, 0);
+  const bottomType = normalizeBottomType(fields.bottomType?.value);
+  const deepEndDepth = bottomType === "Sloped Bottom" ? asNumber(fields.deepEndDepth, 0) : null;
   const unit = fields.unit.value;
   const lengthM = toMeters(length, unit);
   const widthM = toMeters(width, unit);
@@ -795,6 +853,10 @@ const testingAmount =
   const dimensionsM = hasDimensions
     ? `${formatMeasurement(lengthM)} x ${formatMeasurement(widthM)} x ${formatMeasurement(depthM)} m`
     : "Awaiting dimensions";
+  const depthText = hasDimensions ? formatDepthWithUnit(depth, unit) : "Awaiting dimensions";
+  const depthProfileText = hasDimensions && bottomType === "Sloped Bottom" && deepEndDepth > 0
+    ? `${formatDepthWithUnit(depthM, "m")} → ${formatDepthWithUnit(deepEndDepth, "m")}`
+    : depthText;
   const areaText = hasDimensions
     ? `${decimalFormat.format(areaSqFt)} SQFT`
     : "Awaiting dimensions";
@@ -818,6 +880,10 @@ const testingAmount =
     length,
     width,
     depth,
+    bottomType,
+    deepEndDepth,
+    depthText,
+    depthProfileText,
     unit,
     lengthM,
     widthM,
@@ -898,6 +964,7 @@ function renderSpecifications(state) {
     output.specList.innerHTML = `
       <dt>Shape</dt><dd>Rectangular</dd>
       <dt>Dimensions</dt><dd>${escapeHtml(state.dimensions)}${state.unit === "ft" ? ` (${escapeHtml(state.dimensionsM)})` : ""}</dd>
+      ${bottomSpecificationRows(state)}
       <dt>Treatment Area</dt><dd>${escapeHtml(String(state.treatmentArea.totalArea))} sq.m / ${escapeHtml(String(state.treatmentArea.totalAreaFt))} sq.ft</dd>
       <dt>Approx Water Volume</dt><dd>${escapeHtml(state.volumeText)}</dd>
       <dt>Finish</dt><dd>RCC concrete surface prepared for FRP lamination</dd>
@@ -907,6 +974,7 @@ function renderSpecifications(state) {
       <dt>Existing Pool Type</dt><dd>${escapeHtml(state.existingPoolType || state.poolType)}</dd>
       <dt>Pool Type</dt><dd>${escapeHtml(state.poolType)}</dd>
       <dt>Dimensions</dt><dd>${escapeHtml(state.dimensions)}</dd>
+      ${bottomSpecificationRows(state)}
       <dt>Pool Volume</dt><dd>${escapeHtml(state.volumeText)}</dd>
     `;
   } else {
@@ -915,6 +983,7 @@ function renderSpecifications(state) {
       <dt>Pool Type</dt><dd>${escapeHtml(state.poolType)}</dd>
       <dt>Shape</dt><dd>Rectangular</dd>
       <dt>Dimensions</dt><dd>${escapeHtml(state.dimensions)}${state.unit === "ft" ? ` (${escapeHtml(state.dimensionsM)})` : ""}</dd>
+      ${bottomSpecificationRows(state)}
       <dt>Pool Area</dt><dd>${escapeHtml(state.areaText)}</dd>
       <dt>Pool Volume</dt><dd>${escapeHtml(state.volumeText)}</dd>
       <dt>Finish</dt><dd>Pigmented smooth gelcoat finish</dd>
@@ -940,7 +1009,7 @@ function renderExistingPoolDetails(state) {
     <dt>Construction Type</dt><dd>RCC (Reinforced Concrete)</dd>
     <dt>Length</dt><dd>${escapeHtml(state.dimensions.split(' x ')[0])} ${state.unit}</dd>
     <dt>Width</dt><dd>${escapeHtml(state.dimensions.split(' x ')[1])} ${state.unit}</dd>
-    <dt>Depth</dt><dd>${escapeHtml(state.dimensions.split(' x ')[2].split(' ')[0])} ${state.unit}</dd>
+    ${bottomSpecificationRows(state)}
     <dt>Approx Water Volume</dt><dd>${escapeHtml(state.volumeText)}</dd>
     <dt>Floor Area</dt><dd>${formatMeasurement(floorArea)} sq.m / ${formatMeasurement(floorArea * 10.7639)} sq.ft</dd>
     <dt>Wall Area</dt><dd>${formatMeasurement(wallArea)} sq.m / ${formatMeasurement(wallArea * 10.7639)} sq.ft</dd>
@@ -1454,6 +1523,16 @@ function updateProposalLayoutVisibility(state) {
   const shellLabel = fields.shellUnitPrice?.parentElement;
   const installLabel = fields.installationUnitPrice?.parentElement;
   const mepLabel = fields.mepUnitPrice?.parentElement;
+  const isSlopedBottom = state.bottomType === "Sloped Bottom";
+  if (fields.depthLabel) {
+    fields.depthLabel.textContent = isSlopedBottom ? "Shallow End Depth" : "Depth";
+  }
+  if (fields.deepEndDepthWrapper) {
+    fields.deepEndDepthWrapper.hidden = !isSlopedBottom;
+  }
+  if (fields.deepEndDepth) {
+    fields.deepEndDepth.required = isSlopedBottom;
+  }
 
   if (state.proposalType === PROPOSAL_TYPES.MEP_ONLY) {
     if (shellLabel) shellLabel.hidden = true;
@@ -1597,6 +1676,11 @@ function collectQuotationData({ forUpdate = false } = {}) {
     include_surface_preparation: fields.includeSurfacePreparation.checked,
     include_testing: fields.includeTesting.checked,
     existing_pool_type: state.existingPoolType || null,
+    quotation_json: {
+      ...currentQuotationJson,
+      bottom_type: state.bottomType,
+      deep_end_depth: state.bottomType === "Sloped Bottom" ? state.deepEndDepth : null
+    },
     revision_no: state.revision_no,
     scope: fields.scope.value.trim(),
     notes: fields.notes.value.trim(),
@@ -1843,6 +1927,12 @@ function createRevision() {
       delete fallbackData.mep_items;
       ({ data, error } = await supabaseClient.from("quotations").insert([fallbackData]).select());
     }
+    if (error && error.message?.includes("quotation_json")) {
+      console.warn("The quotations table is missing quotation_json. Retrying insert without that column.", error);
+      const fallbackData = { ...quotationData };
+      delete fallbackData.quotation_json;
+      ({ data, error } = await supabaseClient.from("quotations").insert([fallbackData]).select());
+    }
 
     if (error) {
       console.error("Supabase error creating revision:", error);
@@ -1906,6 +1996,7 @@ function dateForInput(value) {
 
 function populateQuotationForm(quotation) {
   try {
+    currentQuotationJson = readQuotationJson(quotation);
     const proposalDate = dateForInput(quotation.proposal_date);
     const loadedValidityDays = Number.parseInt(quotation.validity_days, 10);
 
@@ -1936,6 +2027,8 @@ function populateQuotationForm(quotation) {
     safeSet(fields.length, quotation.pool_length);
     safeSet(fields.width, quotation.pool_width);
     safeSet(fields.depth, quotation.pool_depth);
+    safeSet(fields.bottomType, normalizeBottomType(currentQuotationJson.bottom_type));
+    safeSet(fields.deepEndDepth, currentQuotationJson.deep_end_depth ?? "");
     safeSet(fields.unit, quotation.measurement_unit || "m");
     const loadedProposalType = quotation.proposal_type || PROPOSAL_TYPES.FIBREGLASS_POOL;
     safeSet(fields.poolType, quotation.pool_type || "Fibreglass In-Ground Skimmer Pool");
@@ -2214,12 +2307,29 @@ async function saveProposalToSupabase() {
           .eq("id", currentQuoteId)
           .select());
       }
+
+      if (error && error.message?.includes("quotation_json")) {
+        console.warn("The quotations table is missing quotation_json. Retrying update without that column.", error);
+        const fallbackData = { ...quotationData };
+        delete fallbackData.quotation_json;
+        ({ data, error } = await supabaseClient
+          .from("quotations")
+          .update(fallbackData)
+          .eq("id", currentQuoteId)
+          .select());
+      }
     } else {
       ({ data, error } = await supabaseClient.from("quotations").insert([quotationData]).select());
       if (error && error.message?.includes("mep_items")) {
         console.warn("The quotations table is missing mep_items. Retrying insert without that column.", error);
         const fallbackData = { ...quotationData };
         delete fallbackData.mep_items;
+        ({ data, error } = await supabaseClient.from("quotations").insert([fallbackData]).select());
+      }
+      if (error && error.message?.includes("quotation_json")) {
+        console.warn("The quotations table is missing quotation_json. Retrying insert without that column.", error);
+        const fallbackData = { ...quotationData };
+        delete fallbackData.quotation_json;
         ({ data, error } = await supabaseClient.from("quotations").insert([fallbackData]).select());
       }
     }

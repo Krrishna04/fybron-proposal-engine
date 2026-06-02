@@ -75,7 +75,7 @@
               <label><span>Width</span><input id="width" type="number" min="1" step="0.01" value=""></label>
             </div>
             <div class="split">
-              <label><span>Avg. depth</span><input id="depth" type="number" min="0.5" step="0.01" value=""></label>
+              <label><span id="depthLabel">Depth</span><input id="depth" type="number" min="0.5" step="0.01" value=""></label>
               <label><span>Unit</span><select id="unit"><option value="m">Meters</option><option value="ft">Feet</option></select></label>
             </div>
             <div class="treatment-area-info" id="treatmentAreaInfo" hidden>
@@ -119,12 +119,16 @@
                 </select>
               </label>
               <label>
-  <span>Bottom Type</span>
-  <select id="bottomType">
-    <option value="Flat Bottom">Flat Bottom</option>
-    <option value="Sloped Bottom">Sloped Bottom</option>
-  </select>
-</label>
+                <span>Bottom Type</span>
+                <select id="bottomType">
+                  <option value="Flat Bottom">Flat Bottom</option>
+                  <option value="Sloped Bottom">Sloped Bottom</option>
+                </select>
+              </label>
+              <label id="deepEndDepthWrapper" hidden>
+                <span>Deep End Depth (m)</span>
+                <input id="deepEndDepth" type="number" min="0.5" step="0.01" value="">
+              </label>
               <label id="existingPoolTypeField" hidden>
                 <span>Existing pool type</span>
                 <select id="existingPoolType">
