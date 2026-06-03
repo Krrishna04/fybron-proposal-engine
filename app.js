@@ -457,30 +457,52 @@ function textValue(input, fallback = "") {
 }
 
 function normalizeBottomType(value) {
-  return value === "Sloped Bottom" ? "Sloped Bottom" : "Flat Bottom";
+  if (value === "Sloped Bottom" || value === "Sloped Bottom (Variable Depth)") {
+    return "Sloped Bottom (Variable Depth)";
+  }
+  if (value === "Hopper Bottom") return "Hopper Bottom";
+  if (value === "Custom Bottom Profile") return "Custom Bottom Profile";
+  return "Flat Bottom";
 }
 
 function formatDepthWithUnit(value, unit = "m") {
-  return `${formatMeasurement(value)}${unit}`;
+  return `${formatMeasurement(value)} ${unit}`;
+}
+
+function bottomProfileDisplayName(value) {
+  const normalized = normalizeBottomType(value);
+  return normalized === "Sloped Bottom (Variable Depth)" ? "Sloped Bottom" : normalized;
+}
+
+function bottomProfileNeedsDeepEnd(value) {
+  const normalized = normalizeBottomType(value);
+  return normalized === "Sloped Bottom (Variable Depth)" || normalized === "Hopper Bottom";
 }
 
 function bottomSpecificationRows(state) {
   if (!state.hasDimensions) {
     return `
-      <dt>Bottom Type</dt><dd>${escapeHtml(state.bottomType)}</dd>
+      <dt>Bottom Profile</dt><dd>${escapeHtml(bottomProfileDisplayName(state.bottomType))}</dd>
       <dt>Depth</dt><dd>Awaiting dimensions</dd>
     `;
   }
 
-  if (state.bottomType === "Sloped Bottom") {
+  if (bottomProfileNeedsDeepEnd(state.bottomType)) {
     return `
-      <dt>Bottom Type</dt><dd>Sloped Bottom</dd>
+      <dt>Bottom Profile</dt><dd>${escapeHtml(bottomProfileDisplayName(state.bottomType))}</dd>
       <dt>Depth Profile</dt><dd>${escapeHtml(state.depthProfileText)}</dd>
     `;
   }
 
+  if (state.bottomType === "Custom Bottom Profile") {
+    return `
+      <dt>Bottom Profile</dt><dd>Custom Bottom Profile</dd>
+      <dt>Depth Profile</dt><dd>User Entered Values</dd>
+    `;
+  }
+
   return `
-    <dt>Bottom Type</dt><dd>Flat Bottom</dd>
+    <dt>Bottom Profile</dt><dd>Flat Bottom</dd>
     <dt>Depth</dt><dd>${escapeHtml(state.depthText)}</dd>
   `;
 }
@@ -494,6 +516,25 @@ function readQuotationJson(quotation) {
   } catch {
     return {};
   }
+}
+
+function setSelectValuePreservingLegacy(select, value, fallback = "") {
+  if (!select) return;
+  const normalizedValue = value || fallback;
+  if (!normalizedValue) {
+    select.value = "";
+    return;
+  }
+
+  const hasOption = Array.from(select.options || []).some((option) => option.value === normalizedValue);
+  if (!hasOption) {
+    const option = document.createElement("option");
+    option.value = normalizedValue;
+    option.textContent = `${normalizedValue} (Legacy)`;
+    option.dataset.legacy = "true";
+    select.appendChild(option);
+  }
+  select.value = normalizedValue;
 }
 
 function isRccWaterproofing(poolType) {
@@ -615,12 +656,12 @@ function validateMandatoryFields() {
   }
 
   const bottomType = normalizeBottomType(fields.bottomType?.value);
-  if (bottomType === "Sloped Bottom") {
+  if (bottomProfileNeedsDeepEnd(bottomType)) {
     const deepEndDepth = Number.parseFloat(fields.deepEndDepth?.value);
     const unit = fields.unit?.value || "m";
     const shallowDepthM = Number.isFinite(depth) ? toMeters(depth, unit) : depth;
     if (!Number.isFinite(deepEndDepth) || deepEndDepth <= 0) {
-      errors.push("Deep End Depth (required for Sloped Bottom)");
+      errors.push("Deep End Depth (required for Sloped/Hopper bottom profile)");
     } else if (Number.isFinite(shallowDepthM) && deepEndDepth < shallowDepthM) {
       errors.push("Deep End Depth (must be greater than or equal to shallow depth)");
     }
@@ -805,7 +846,7 @@ function buildProposalState() {
   const width = asNumber(fields.width, 0);
   const depth = asNumber(fields.depth, 0);
   const bottomType = normalizeBottomType(fields.bottomType?.value);
-  const deepEndDepth = bottomType === "Sloped Bottom" ? asNumber(fields.deepEndDepth, 0) : null;
+  const deepEndDepth = bottomProfileNeedsDeepEnd(bottomType) ? asNumber(fields.deepEndDepth, 0) : null;
   const unit = fields.unit.value;
   const lengthM = toMeters(length, unit);
   const widthM = toMeters(width, unit);
@@ -854,7 +895,7 @@ const testingAmount =
     ? `${formatMeasurement(lengthM)} x ${formatMeasurement(widthM)} x ${formatMeasurement(depthM)} m`
     : "Awaiting dimensions";
   const depthText = hasDimensions ? formatDepthWithUnit(depth, unit) : "Awaiting dimensions";
-  const depthProfileText = hasDimensions && bottomType === "Sloped Bottom" && deepEndDepth > 0
+  const depthProfileText = hasDimensions && bottomProfileNeedsDeepEnd(bottomType) && deepEndDepth > 0
     ? `${formatDepthWithUnit(depthM, "m")} → ${formatDepthWithUnit(deepEndDepth, "m")}`
     : depthText;
   const areaText = hasDimensions
@@ -1109,7 +1150,7 @@ function renderPriceSummary(state) {
 
   if (state.proposalType === PROPOSAL_TYPES.FIBREGLASS_POOL) {
     if (selected.main) rows.push({ description: "Engineered FRP/GRP Pool Shell", amount: state.shellAmount });
-    if (selected.installation) rows.push({ description: "Positioning, Installation & Commissioning", amount: state.installationAmount });
+    if (selected.installation) rows.push({ description: "Delivery, Positioning & Installation", amount: state.installationAmount });
     if (selected.mep) rows.push({ description: "MEP & Water Treatment System", amount: state.mepAmount });
     if (selected.surface) rows.push({ description: "Surface Preparation & Restoration", amount: state.surfaceAmount });
     if (selected.testing) rows.push({ description: "Testing & Commissioning", amount: state.testingAmount });
@@ -1125,7 +1166,7 @@ if (selected.surface) rows.push({
   description: "Surface Preparation & Restoration",
   amount: state.surfaceAmount
 });    if (selected.mep) rows.push({ description: "MEP & Water Treatment System", amount: state.mepAmount });
-    if (selected.installation && !selected.surface) rows.push({ description: "Positioning, Installation & Commissioning", amount: state.installationAmount });
+    if (selected.installation && !selected.surface) rows.push({ description: "Delivery, Positioning & Installation", amount: state.installationAmount });
 if (selected.testing) rows.push({
   description: "Testing & Commissioning",
   amount: state.testingAmount
@@ -1523,15 +1564,15 @@ function updateProposalLayoutVisibility(state) {
   const shellLabel = fields.shellUnitPrice?.parentElement;
   const installLabel = fields.installationUnitPrice?.parentElement;
   const mepLabel = fields.mepUnitPrice?.parentElement;
-  const isSlopedBottom = state.bottomType === "Sloped Bottom";
+  const needsDeepEndDepth = bottomProfileNeedsDeepEnd(state.bottomType);
   if (fields.depthLabel) {
-    fields.depthLabel.textContent = isSlopedBottom ? "Shallow End Depth" : "Depth";
+    fields.depthLabel.textContent = needsDeepEndDepth ? "Shallow End Depth" : "Depth";
   }
   if (fields.deepEndDepthWrapper) {
-    fields.deepEndDepthWrapper.hidden = !isSlopedBottom;
+    fields.deepEndDepthWrapper.hidden = !needsDeepEndDepth;
   }
   if (fields.deepEndDepth) {
-    fields.deepEndDepth.required = isSlopedBottom;
+    fields.deepEndDepth.required = needsDeepEndDepth;
   }
 
   if (state.proposalType === PROPOSAL_TYPES.MEP_ONLY) {
@@ -1679,7 +1720,7 @@ function collectQuotationData({ forUpdate = false } = {}) {
     quotation_json: {
       ...currentQuotationJson,
       bottom_type: state.bottomType,
-      deep_end_depth: state.bottomType === "Sloped Bottom" ? state.deepEndDepth : null
+      deep_end_depth: bottomProfileNeedsDeepEnd(state.bottomType) ? state.deepEndDepth : null
     },
     revision_no: state.revision_no,
     scope: fields.scope.value.trim(),
@@ -2031,7 +2072,7 @@ function populateQuotationForm(quotation) {
     safeSet(fields.deepEndDepth, currentQuotationJson.deep_end_depth ?? "");
     safeSet(fields.unit, quotation.measurement_unit || "m");
     const loadedProposalType = quotation.proposal_type || PROPOSAL_TYPES.FIBREGLASS_POOL;
-    safeSet(fields.poolType, quotation.pool_type || "Fibreglass In-Ground Skimmer Pool");
+    setSelectValuePreservingLegacy(fields.poolType, quotation.pool_type, "Fibreglass In-Ground Pool");
     safeSet(fields.existingPoolType, quotation.existing_pool_type || quotation.pool_type || "RCC In-Ground Pool");
     safeSet(fields.revision, quotation.revision_no ?? "R0");
     safeSet(fields.baseRate, quotation.base_rate ?? 3900);
