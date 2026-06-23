@@ -71,6 +71,9 @@ const fields = {
   deepEndDepth: document.querySelector("#deepEndDepth"),
   deepEndDepthWrapper: document.querySelector("#deepEndDepthWrapper"),
   existingPoolType: document.querySelector("#existingPoolType"),
+  poolShellThickness: document.querySelector("#poolShellThickness"),
+  poolShape: document.querySelector("#poolShape"),
+  circulationSystem: document.querySelector("#circulationSystem"),
   revision: document.querySelector("#revision"),
   createRevisionButton: document.querySelector("#createRevision"),
   revisionControls: document.querySelector("#revisionControls"),
@@ -965,7 +968,10 @@ const testingAmount =
     mepItems: Array.isArray(state.mepItems) ? state.mepItems : [],
     matchText,
     isRcc: isRccWaterproofing(poolType),
-    existingPoolType: fields.existingPoolType.value
+    existingPoolType: fields.existingPoolType.value,
+    poolShellThickness: fields.poolShellThickness?.value.trim() || "12 mm (standard)",
+    poolShape: fields.poolShape?.value.trim() || "Rectangular",
+    circulationSystem: fields.circulationSystem?.value.trim() || "Skimmer Type"
   };
 }
 
@@ -1019,14 +1025,27 @@ function renderSpecifications(state) {
       <dt>Pool Volume</dt><dd>${escapeHtml(state.volumeText)}</dd>
     `;
   } else {
-    // Fibreglass product proposal
+    // Fibreglass product proposal — compute weight and thickness
+    const shellThickness = state.poolShellThickness || "12 mm (standard)";
+    const poolShape = state.poolShape || "Rectangular";
+    const circSystem = state.circulationSystem || "Skimmer Type";
+    const waterWeightKg = Math.round(state.volumeLitres || 0);
+    const shellAreaSqM = (state.areaSqFt || 0) / 10.764;
+    const estimatedShellWeight = Math.round(shellAreaSqM * 35); // ~35 kg/sqm for FRP shell
+    const totalWeightKg = waterWeightKg + estimatedShellWeight;
+    const totalWeightText = totalWeightKg > 0 ? `${decimalFormat.format(totalWeightKg)} kg` : "—";
+
     output.specList.innerHTML = `
       <dt>Pool Type</dt><dd>${escapeHtml(state.poolType)}</dd>
-      <dt>Shape</dt><dd>Rectangular</dd>
+      <dt>Shape</dt><dd>${escapeHtml(poolShape)}</dd>
       <dt>Dimensions</dt><dd>${escapeHtml(state.dimensions)}${state.unit === "ft" ? ` (${escapeHtml(state.dimensionsM)})` : ""}</dd>
       ${bottomSpecificationRows(state)}
       <dt>Pool Area</dt><dd>${escapeHtml(state.areaText)}</dd>
       <dt>Pool Volume</dt><dd>${escapeHtml(state.volumeText)}</dd>
+      <dt>Pool Shell Thickness</dt><dd>${escapeHtml(shellThickness)}</dd>
+      <dt>Pool Weight (Dry)</dt><dd>${decimalFormat.format(estimatedShellWeight)} kg</dd>
+      <dt>Pool Weight with Water</dt><dd>${totalWeightText}</dd>
+      <dt>Circulation System</dt><dd>${escapeHtml(circSystem)}</dd>
       <dt>Finish</dt><dd>Pigmented smooth gelcoat finish</dd>
       <dt>Pool System</dt><dd>Skimmer type</dd>
       <dt>Brand</dt><dd>FYBRON</dd>
@@ -1371,10 +1390,10 @@ function render() {
   output.outNotes.innerHTML = escapeHtml(fields.notes.value.trim()).replace(/\n/g, "<br>");
   updateProposalLayoutVisibility(state);
 
-  renderPoolDiagram(state.lengthM, state.widthM, state.depthM, state.dimensions);
+  renderPoolDiagram(state.lengthM, state.widthM, state.depthM, state.dimensions, state.bottomType, state.deepEndDepth);
 }
 
-function renderPoolDiagram(length, width, depth, dimensionLabel) {
+function renderPoolDiagram(length, width, depth, dimensionLabel, bottomType, deepEndDepth) {
   const diagramContainer = document.querySelector("#poolDiagram");
   if (!diagramContainer) return;
   if (length <= 0 || width <= 0 || depth <= 0) {
@@ -1384,124 +1403,131 @@ function renderPoolDiagram(length, width, depth, dimensionLabel) {
     return;
   }
 
-  // Use larger scale for print quality - 1 unit = 1 pixel in SVG
-  const scale = 60; // 60px per meter for print quality
+  // Resolve bottom profile
+  const normalizedBottom = normalizeBottomType(bottomType || "Flat Bottom");
+  const needsDeepEnd = bottomProfileNeedsDeepEnd(bottomType || "Flat Bottom");
+  const deepEndM = needsDeepEnd && deepEndDepth && Number.isFinite(Number(deepEndDepth)) && Number(deepEndDepth) > 0 ? Number(deepEndDepth) : depth;
+  const shallowDepthM = depth;
+
+  // Scale
+  const scale = 60;
   const scaledLength = length * scale;
   const scaledWidth = width * scale;
-  const scaledDepth = depth * scale;
+  const scaledShallowDepth = shallowDepthM * scale;
+  const scaledDeepDepth = deepEndM * scale;
+  const maxScaledDepth = Math.max(scaledShallowDepth, scaledDeepDepth);
 
-  // Convert millimeters to CSS pixels (96 DPI): 1 mm ≈ 3.7795275591 px
   const mmToPx = (mm) => mm * 3.7795275591;
-
-  // Layout constants: use 10mm distances where spacing is required
   const topViewPadding = Math.round(mmToPx(10));
   const sideViewPadding = Math.round(mmToPx(10));
   const viewGap = Math.round(mmToPx(10));
   const bottomPadding = Math.round(mmToPx(10));
 
-  // Calculate dimensions
   const topViewWidth = scaledLength + topViewPadding * 2;
-  const topViewHeight = scaledWidth + topViewPadding * 2 + 60; // Extra space for labels
-
+  const topViewHeight = scaledWidth + topViewPadding * 2 + 60;
   const sideViewWidth = scaledLength + sideViewPadding * 2;
-  const sideViewHeight = scaledDepth + sideViewPadding * 2 + 60; // Extra space for labels
+  const sideViewHeight = maxScaledDepth + sideViewPadding * 2 + 60;
 
-  // Total SVG dimensions
   const svgWidth = Math.max(topViewWidth, sideViewWidth) + 40;
   const svgHeight = topViewHeight + sideViewHeight + viewGap + bottomPadding;
 
-  // Calculate positions for centering
   const topViewStartX = (svgWidth - topViewWidth) / 2;
   const topViewStartY = 30;
-
   const sideViewStartX = (svgWidth - sideViewWidth) / 2;
   const sideViewStartY = topViewStartY + topViewHeight + viewGap;
 
-  // Pool positions
   const topPoolX = topViewStartX + topViewPadding;
   const topPoolY = topViewStartY + topViewPadding;
-
   const sidePoolX = sideViewStartX + sideViewPadding;
-  const sidePoolY = sideViewStartY + sideViewPadding;
+  const sidePoolTopY = sideViewStartY + sideViewPadding;
+  const groundY = sidePoolTopY + maxScaledDepth;
 
-  const svg = `
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${svgWidth} ${svgHeight}" width="${svgWidth}" height="${svgHeight}" style="max-width: 100%; height: auto; display: block; background: white; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
+  // Build side elevation based on bottom profile
+  let sidePoolPath, sideWaterPath, cornerCircles;
+  let depthLabelLeft, depthLabelRight, lengthDimY;
+  let depthLeftLines, depthRightLines = "";
+
+  if (normalizedBottom === "Hopper Bottom") {
+    const slopedEndX = sidePoolX + scaledLength * 0.55;
+    const deepWallW = scaledLength * 0.1;
+    const deepSectionStart = slopedEndX + deepWallW;
+    const shallowY = sidePoolTopY + scaledShallowDepth;
+    const deepY = sidePoolTopY + scaledDeepDepth;
+    lengthDimY = groundY + 24;
+    sidePoolPath = `M ${sidePoolX} ${sidePoolTopY} L ${sidePoolX} ${shallowY} L ${slopedEndX} ${deepY} L ${deepSectionStart} ${deepY} L ${sidePoolX + scaledLength} ${deepY} L ${sidePoolX + scaledLength} ${sidePoolTopY} Z`;
+    sideWaterPath = sidePoolPath;
+    cornerCircles = `<circle cx="${sidePoolX}" cy="${sidePoolTopY}" r="3" fill="#116c67"/><circle cx="${sidePoolX + scaledLength}" cy="${sidePoolTopY}" r="3" fill="#116c67"/><circle cx="${sidePoolX}" cy="${shallowY}" r="3" fill="#116c67"/><circle cx="${slopedEndX}" cy="${deepY}" r="3" fill="#116c67"/><circle cx="${deepSectionStart}" cy="${deepY}" r="3" fill="#116c67"/><circle cx="${sidePoolX + scaledLength}" cy="${deepY}" r="3" fill="#116c67"/>`;
+    depthLabelLeft = `Shallow: ${formatMeasurement(shallowDepthM)} m`;
+    depthLabelRight = `Deep: ${formatMeasurement(deepEndM)} m`;
+    depthLeftLines = `<line x1="${sidePoolX - 24}" y1="${sidePoolTopY}" x2="${sidePoolX - 24}" y2="${shallowY}" class="dimension-line"/><line x1="${sidePoolX - 30}" y1="${sidePoolTopY}" x2="${sidePoolX - 18}" y2="${sidePoolTopY}" class="dimension-tick"/><line x1="${sidePoolX - 30}" y1="${shallowY}" x2="${sidePoolX - 18}" y2="${shallowY}" class="dimension-tick"/><text x="${sidePoolX - 48}" y="${(sidePoolTopY + shallowY) / 2}" text-anchor="middle" class="pool-label pool-depth-label" transform="rotate(-90 ${sidePoolX - 48} ${(sidePoolTopY + shallowY) / 2})">${depthLabelLeft}</text>`;
+    depthRightLines = `<line x1="${sidePoolX + scaledLength + 24}" y1="${deepY}" x2="${sidePoolX + scaledLength + 24}" y2="${sidePoolTopY}" class="dimension-line"/><line x1="${sidePoolX + scaledLength + 30}" y1="${sidePoolTopY}" x2="${sidePoolX + scaledLength + 18}" y2="${sidePoolTopY}" class="dimension-tick"/><line x1="${sidePoolX + scaledLength + 30}" y1="${deepY}" x2="${sidePoolX + scaledLength + 18}" y2="${deepY}" class="dimension-tick"/><text x="${sidePoolX + scaledLength + 48}" y="${(sidePoolTopY + deepY) / 2}" text-anchor="middle" class="pool-label pool-depth-label" transform="rotate(90 ${sidePoolX + scaledLength + 48} ${(sidePoolTopY + deepY) / 2})">${depthLabelRight}</text>`;
+  } else if (normalizedBottom === "Sloped Bottom (Variable Depth)") {
+    const slopedEndX = sidePoolX + scaledLength * 0.85;
+    const shallowY = sidePoolTopY + scaledShallowDepth;
+    const deepY = sidePoolTopY + scaledDeepDepth;
+    lengthDimY = groundY + 24;
+    sidePoolPath = `M ${sidePoolX} ${sidePoolTopY} L ${sidePoolX} ${shallowY} L ${slopedEndX} ${deepY} L ${sidePoolX + scaledLength} ${deepY} L ${sidePoolX + scaledLength} ${sidePoolTopY} Z`;
+    sideWaterPath = sidePoolPath;
+    cornerCircles = `<circle cx="${sidePoolX}" cy="${sidePoolTopY}" r="3" fill="#116c67"/><circle cx="${sidePoolX + scaledLength}" cy="${sidePoolTopY}" r="3" fill="#116c67"/><circle cx="${sidePoolX}" cy="${shallowY}" r="3" fill="#116c67"/><circle cx="${slopedEndX}" cy="${deepY}" r="3" fill="#116c67"/><circle cx="${sidePoolX + scaledLength}" cy="${deepY}" r="3" fill="#116c67"/>`;
+    depthLabelLeft = `Shallow: ${formatMeasurement(shallowDepthM)} m`;
+    depthLabelRight = `Deep: ${formatMeasurement(deepEndM)} m`;
+    depthLeftLines = `<line x1="${sidePoolX - 24}" y1="${sidePoolTopY}" x2="${sidePoolX - 24}" y2="${shallowY}" class="dimension-line"/><line x1="${sidePoolX - 30}" y1="${sidePoolTopY}" x2="${sidePoolX - 18}" y2="${sidePoolTopY}" class="dimension-tick"/><line x1="${sidePoolX - 30}" y1="${shallowY}" x2="${sidePoolX - 18}" y2="${shallowY}" class="dimension-tick"/><text x="${sidePoolX - 48}" y="${(sidePoolTopY + shallowY) / 2}" text-anchor="middle" class="pool-label pool-depth-label" transform="rotate(-90 ${sidePoolX - 48} ${(sidePoolTopY + shallowY) / 2})">${depthLabelLeft}</text>`;
+    depthRightLines = `<line x1="${sidePoolX + scaledLength + 24}" y1="${deepY}" x2="${sidePoolX + scaledLength + 24}" y2="${sidePoolTopY}" class="dimension-line"/><line x1="${sidePoolX + scaledLength + 30}" y1="${sidePoolTopY}" x2="${sidePoolX + scaledLength + 18}" y2="${sidePoolTopY}" class="dimension-tick"/><line x1="${sidePoolX + scaledLength + 30}" y1="${deepY}" x2="${sidePoolX + scaledLength + 18}" y2="${deepY}" class="dimension-tick"/><text x="${sidePoolX + scaledLength + 48}" y="${(sidePoolTopY + deepY) / 2}" text-anchor="middle" class="pool-label pool-depth-label" transform="rotate(90 ${sidePoolX + scaledLength + 48} ${(sidePoolTopY + deepY) / 2})">${depthLabelRight}</text>`;
+  } else {
+    // Flat or Custom
+    const bottomY = sidePoolTopY + scaledShallowDepth;
+    lengthDimY = groundY + 24;
+    sidePoolPath = `M ${sidePoolX} ${sidePoolTopY} L ${sidePoolX} ${bottomY} L ${sidePoolX + scaledLength} ${bottomY} L ${sidePoolX + scaledLength} ${sidePoolTopY} Z`;
+    sideWaterPath = sidePoolPath;
+    cornerCircles = `<circle cx="${sidePoolX}" cy="${sidePoolTopY}" r="3" fill="#116c67"/><circle cx="${sidePoolX + scaledLength}" cy="${sidePoolTopY}" r="3" fill="#116c67"/><circle cx="${sidePoolX}" cy="${bottomY}" r="3" fill="#116c67"/><circle cx="${sidePoolX + scaledLength}" cy="${bottomY}" r="3" fill="#116c67"/>`;
+    const labelSuffix = normalizedBottom === "Custom Bottom Profile" ? " (Custom)" : "";
+    depthLabelLeft = `Depth: ${formatMeasurement(depth)} m${labelSuffix}`;
+    depthLeftLines = `<line x1="${sidePoolX - 24}" y1="${sidePoolTopY}" x2="${sidePoolX - 24}" y2="${bottomY}" class="dimension-line"/><line x1="${sidePoolX - 30}" y1="${sidePoolTopY}" x2="${sidePoolX - 18}" y2="${sidePoolTopY}" class="dimension-tick"/><line x1="${sidePoolX - 30}" y1="${bottomY}" x2="${sidePoolX - 18}" y2="${bottomY}" class="dimension-tick"/><text x="${sidePoolX - 48}" y="${(sidePoolTopY + bottomY) / 2}" text-anchor="middle" class="pool-label pool-depth-label" transform="rotate(-90 ${sidePoolX - 48} ${(sidePoolTopY + bottomY) / 2})">${depthLabelLeft}</text>`;
+  }
+
+  const svg = \`
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 \${svgWidth} \${svgHeight}" width="\${svgWidth}" height="\${svgHeight}" style="max-width: 100%; height: auto; display: block; background: white; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
       <defs>
         <style>
           .pool-label { font-family: system-ui, -apple-system, sans-serif; fill: #132126; font-weight: 600; }
           .pool-dimension { font-size: 14px; fill: #116c67; }
-          .pool-depth-label { font-size: 14px; fill: #116c67; }
+          .pool-depth-label { font-size: 12px; fill: #116c67; }
           .pool-title { font-size: 13px; fill: #5f6d73; font-weight: 600; }
           .dimension-line { stroke: #116c67; stroke-width: 1.5; }
           .dimension-tick { stroke: #116c67; stroke-width: 1; }
         </style>
       </defs>
-      
-      <!-- ===== TOP-DOWN VIEW ===== -->
       <g id="topDownView">
-        <!-- Pool shell outline -->
-        <rect x="${topPoolX}" y="${topPoolY}" width="${scaledLength}" height="${scaledWidth}" fill="#3aa9c7" opacity="0.15" stroke="#116c67" stroke-width="2.5"/>
-        
-        <!-- Water fill -->
-        <rect x="${topPoolX + 2}" y="${topPoolY + 2}" width="${scaledLength - 4}" height="${scaledWidth - 4}" fill="#3aa9c7" opacity="0.25" stroke="none"/>
-        
-        <!-- Corner circles -->
-        <circle cx="${topPoolX}" cy="${topPoolY}" r="3" fill="#116c67"/>
-        <circle cx="${topPoolX + scaledLength}" cy="${topPoolY}" r="3" fill="#116c67"/>
-        <circle cx="${topPoolX}" cy="${topPoolY + scaledWidth}" r="3" fill="#116c67"/>
-        <circle cx="${topPoolX + scaledLength}" cy="${topPoolY + scaledWidth}" r="3" fill="#116c67"/>
-        
-        <!-- LENGTH DIMENSION (Top) -->
-        <line x1="${topPoolX}" y1="${topPoolY - 24}" x2="${topPoolX + scaledLength}" y2="${topPoolY - 24}" class="dimension-line"/>
-        <line x1="${topPoolX}" y1="${topPoolY - 30}" x2="${topPoolX}" y2="${topPoolY - 18}" class="dimension-tick"/>
-        <line x1="${topPoolX + scaledLength}" y1="${topPoolY - 30}" x2="${topPoolX + scaledLength}" y2="${topPoolY - 18}" class="dimension-tick"/>
-        <text x="${topPoolX + scaledLength / 2}" y="${topPoolY - 32}" text-anchor="middle" class="pool-label pool-dimension">Length: ${formatMeasurement(length)} m</text>
-        
-        <!-- WIDTH DIMENSION (Left) -->
-        <line x1="${topPoolX - 24}" y1="${topPoolY}" x2="${topPoolX - 24}" y2="${topPoolY + scaledWidth}" class="dimension-line"/>
-        <line x1="${topPoolX - 30}" y1="${topPoolY}" x2="${topPoolX - 18}" y2="${topPoolY}" class="dimension-tick"/>
-        <line x1="${topPoolX - 30}" y1="${topPoolY + scaledWidth}" x2="${topPoolX - 18}" y2="${topPoolY + scaledWidth}" class="dimension-tick"/>
-        <text x="${topPoolX - 48}" y="${topPoolY + scaledWidth / 2}" text-anchor="middle" class="pool-label pool-dimension" transform="rotate(-90 ${topPoolX - 48} ${topPoolY + scaledWidth / 2})">Width: ${formatMeasurement(width)} m</text>
-        
-        <!-- Title -->
-        <text x="${topViewStartX + topViewWidth / 2}" y="${topPoolY + scaledWidth + 50}" text-anchor="middle" class="pool-label pool-title">TOP-DOWN VIEW</text>
+        <rect x="\${topPoolX}" y="\${topPoolY}" width="\${scaledLength}" height="\${scaledWidth}" fill="#3aa9c7" opacity="0.15" stroke="#116c67" stroke-width="2.5"/>
+        <rect x="\${topPoolX + 2}" y="\${topPoolY + 2}" width="\${scaledLength - 4}" height="\${scaledWidth - 4}" fill="#3aa9c7" opacity="0.25" stroke="none"/>
+        <circle cx="\${topPoolX}" cy="\${topPoolY}" r="3" fill="#116c67"/>
+        <circle cx="\${topPoolX + scaledLength}" cy="\${topPoolY}" r="3" fill="#116c67"/>
+        <circle cx="\${topPoolX}" cy="\${topPoolY + scaledWidth}" r="3" fill="#116c67"/>
+        <circle cx="\${topPoolX + scaledLength}" cy="\${topPoolY + scaledWidth}" r="3" fill="#116c67"/>
+        <line x1="\${topPoolX}" y1="\${topPoolY - 24}" x2="\${topPoolX + scaledLength}" y2="\${topPoolY - 24}" class="dimension-line"/>
+        <line x1="\${topPoolX}" y1="\${topPoolY - 30}" x2="\${topPoolX}" y2="\${topPoolY - 18}" class="dimension-tick"/>
+        <line x1="\${topPoolX + scaledLength}" y1="\${topPoolY - 30}" x2="\${topPoolX + scaledLength}" y2="\${topPoolY - 18}" class="dimension-tick"/>
+        <text x="\${topPoolX + scaledLength / 2}" y="\${topPoolY - 32}" text-anchor="middle" class="pool-label pool-dimension">Length: \${formatMeasurement(length)} m</text>
+        <line x1="\${topPoolX - 24}" y1="\${topPoolY}" x2="\${topPoolX - 24}" y2="\${topPoolY + scaledWidth}" class="dimension-line"/>
+        <line x1="\${topPoolX - 30}" y1="\${topPoolY}" x2="\${topPoolX - 18}" y2="\${topPoolY}" class="dimension-tick"/>
+        <line x1="\${topPoolX - 30}" y1="\${topPoolY + scaledWidth}" x2="\${topPoolX - 18}" y2="\${topPoolY + scaledWidth}" class="dimension-tick"/>
+        <text x="\${topPoolX - 48}" y="\${topPoolY + scaledWidth / 2}" text-anchor="middle" class="pool-label pool-dimension" transform="rotate(-90 \${topPoolX - 48} \${topPoolY + scaledWidth / 2})">Width: \${formatMeasurement(width)} m</text>
+        <text x="\${topViewStartX + topViewWidth / 2}" y="\${topPoolY + scaledWidth + 50}" text-anchor="middle" class="pool-label pool-title">TOP-DOWN VIEW</text>
       </g>
-      
-      <!-- ===== SIDE ELEVATION VIEW ===== -->
       <g id="sideView">
-        <!-- Title -->
-        <text x="${sideViewStartX + sideViewWidth / 2}" y="${sidePoolY - 28}" text-anchor="middle" class="pool-label pool-title">SIDE ELEVATION VIEW</text>
-
-        <!-- Pool shell outline (side view) -->
-        <rect x="${sidePoolX}" y="${sidePoolY}" width="${scaledLength}" height="${scaledDepth}" fill="#3aa9c7" opacity="0.15" stroke="#116c67" stroke-width="2.5"/>
-        
-        <!-- Water fill (side) -->
-        <rect x="${sidePoolX + 2}" y="${sidePoolY + 2}" width="${scaledLength - 4}" height="${scaledDepth - 4}" fill="#3aa9c7" opacity="0.25" stroke="none"/>
-        
-        <!-- Bottom line (ground) -->
-        <line x1="${sidePoolX}" y1="${sidePoolY + scaledDepth}" x2="${sidePoolX + scaledLength}" y2="${sidePoolY + scaledDepth}" stroke="#5f6d73" stroke-width="1" stroke-dasharray="4,2"/>
-        
-        <!-- Corner circles -->
-        <circle cx="${sidePoolX}" cy="${sidePoolY}" r="3" fill="#116c67"/>
-        <circle cx="${sidePoolX + scaledLength}" cy="${sidePoolY}" r="3" fill="#116c67"/>
-        <circle cx="${sidePoolX}" cy="${sidePoolY + scaledDepth}" r="3" fill="#116c67"/>
-        <circle cx="${sidePoolX + scaledLength}" cy="${sidePoolY + scaledDepth}" r="3" fill="#116c67"/>
-        
-        <!-- LENGTH DIMENSION (Bottom of side view) -->
-        <line x1="${sidePoolX}" y1="${sidePoolY + scaledDepth + 24}" x2="${sidePoolX + scaledLength}" y2="${sidePoolY + scaledDepth + 24}" class="dimension-line"/>
-        <line x1="${sidePoolX}" y1="${sidePoolY + scaledDepth + 30}" x2="${sidePoolX}" y2="${sidePoolY + scaledDepth + 18}" class="dimension-tick"/>
-        <line x1="${sidePoolX + scaledLength}" y1="${sidePoolY + scaledDepth + 30}" x2="${sidePoolX + scaledLength}" y2="${sidePoolY + scaledDepth + 18}" class="dimension-tick"/>
-        <text x="${sidePoolX + scaledLength / 2}" y="${sidePoolY + scaledDepth + 42}" text-anchor="middle" class="pool-label pool-dimension">Length: ${formatMeasurement(length)} m</text>
-        
-        <!-- DEPTH DIMENSION (Right) -->
-        <line x1="${sidePoolX + scaledLength + 24}" y1="${sidePoolY}" x2="${sidePoolX + scaledLength + 24}" y2="${sidePoolY + scaledDepth}" class="dimension-line"/>
-        <line x1="${sidePoolX + scaledLength + 30}" y1="${sidePoolY}" x2="${sidePoolX + scaledLength + 18}" y2="${sidePoolY}" class="dimension-tick"/>
-        <line x1="${sidePoolX + scaledLength + 30}" y1="${sidePoolY + scaledDepth}" x2="${sidePoolX + scaledLength + 18}" y2="${sidePoolY + scaledDepth}" class="dimension-tick"/>
-        <text x="${sidePoolX + scaledLength + 48}" y="${sidePoolY + scaledDepth / 2}" text-anchor="middle" class="pool-label pool-depth-label" transform="rotate(90 ${sidePoolX + scaledLength + 48} ${sidePoolY + scaledDepth / 2})">Depth: ${formatMeasurement(depth)} m</text>
-        
+        <text x="\${sideViewStartX + sideViewWidth / 2}" y="\${sidePoolTopY - 28}" text-anchor="middle" class="pool-label pool-title">SIDE ELEVATION VIEW</text>
+        <path d="\${sidePoolPath}" fill="#3aa9c7" opacity="0.15" stroke="#116c67" stroke-width="2.5"/>
+        <line x1="\${sidePoolX}" y1="\${groundY}" x2="\${sidePoolX + scaledLength}" y2="\${groundY}" stroke="#5f6d73" stroke-width="1" stroke-dasharray="4,2"/>
+        \${cornerCircles}
+        \${depthLeftLines}
+        \${depthRightLines}
+        <line x1="\${sidePoolX}" y1="\${lengthDimY}" x2="\${sidePoolX + scaledLength}" y2="\${lengthDimY}" class="dimension-line"/>
+        <line x1="\${sidePoolX}" y1="\${lengthDimY + 6}" x2="\${sidePoolX}" y2="\${lengthDimY + 18}" class="dimension-tick"/>
+        <line x1="\${sidePoolX + scaledLength}" y1="\${lengthDimY + 6}" x2="\${sidePoolX + scaledLength}" y2="\${lengthDimY + 18}" class="dimension-tick"/>
+        <text x="\${sidePoolX + scaledLength / 2}" y="\${lengthDimY + 18}" text-anchor="middle" class="pool-label pool-dimension">Length: \${formatMeasurement(length)} m</text>
       </g>
     </svg>
-  `;
+  \`;
 
   diagramContainer.innerHTML = svg;
 }
@@ -1720,7 +1746,10 @@ function collectQuotationData({ forUpdate = false } = {}) {
     quotation_json: {
       ...currentQuotationJson,
       bottom_type: state.bottomType,
-      deep_end_depth: bottomProfileNeedsDeepEnd(state.bottomType) ? state.deepEndDepth : null
+      deep_end_depth: bottomProfileNeedsDeepEnd(state.bottomType) ? state.deepEndDepth : null,
+      pool_shell_thickness: state.poolShellThickness,
+      pool_shape: state.poolShape,
+      circulation_system: state.circulationSystem
     },
     revision_no: state.revision_no,
     scope: fields.scope.value.trim(),
@@ -2074,6 +2103,9 @@ function populateQuotationForm(quotation) {
     const loadedProposalType = quotation.proposal_type || PROPOSAL_TYPES.FIBREGLASS_POOL;
     setSelectValuePreservingLegacy(fields.poolType, quotation.pool_type, "Fibreglass In-Ground Pool");
     safeSet(fields.existingPoolType, quotation.existing_pool_type || quotation.pool_type || "RCC In-Ground Pool");
+    safeSet(fields.poolShellThickness, currentQuotationJson.pool_shell_thickness ?? "12 mm");
+    safeSet(fields.poolShape, currentQuotationJson.pool_shape ?? "Rectangular");
+    safeSet(fields.circulationSystem, currentQuotationJson.circulation_system ?? "Skimmer Type");
     safeSet(fields.revision, quotation.revision_no ?? "R0");
     safeSet(fields.baseRate, quotation.base_rate ?? 3900);
     safeSet(fields.gstRate, quotation.gst_rate ?? 18);

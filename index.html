@@ -75,7 +75,7 @@
               <label><span>Width</span><input id="width" type="number" min="1" step="0.01" value=""></label>
             </div>
             <div class="split">
-              <label><span id="depthLabel">Depth</span><input id="depth" type="number" min="0.5" step="0.01" value=""></label>
+              <label><span>Avg. depth</span><input id="depth" type="number" min="0.5" step="0.01" value=""></label>
               <label><span>Unit</span><select id="unit"><option value="m">Meters</option><option value="ft">Feet</option></select></label>
             </div>
             <div class="treatment-area-info" id="treatmentAreaInfo" hidden>
@@ -109,27 +109,26 @@
               <label id="fibreglassPoolTypeField">
                 <span>Pool type</span>
                 <select id="poolType">
-                  <option value="Fibreglass In-Ground Pool">Fibreglass In-Ground Pool</option>
-                  <option value="Fibreglass Above-Ground Pool">Fibreglass Above-Ground Pool</option>
-                  <option value="Fibreglass Plunge Pool">Fibreglass Plunge Pool</option>
-                  <option value="Fibreglass Infinity Edge Pool">Fibreglass Infinity Edge Pool</option>
-                  <option value="Fibreglass Lap Pool">Fibreglass Lap Pool</option>
-                  <option value="Custom Fibreglass Pool">Custom Fibreglass Pool</option>
+                  <option value="Fibreglass In-Ground Skimmer Pool">Fibreglass In-Ground Skimmer Pool</option>
+                  <option value="Fibreglass Above-Ground Skimmer Pool">Fibreglass Above-Ground Skimmer Pool</option>
+                  <option value="Plunge Pool">Plunge Pool</option>
+                  <option value="Prefabricated Panel Pool">Prefabricated Panel Pool</option>
+                  <option value="Infinity Pool">Infinity Pool</option>
+                  <option value="Indoor Pool">Indoor Pool</option>
+                  <option value="Custom Pool">Custom Pool</option>
                 </select>
               </label>
               <label>
-                <span>Bottom Profile</span>
-                <select id="bottomType">
-                  <option value="Flat Bottom">Flat Bottom</option>
-                  <option value="Sloped Bottom (Variable Depth)">Sloped Bottom (Variable Depth)</option>
-                  <option value="Hopper Bottom">Hopper Bottom</option>
-                  <option value="Custom Bottom Profile">Custom Bottom Profile</option>
-                </select>
-              </label>
-              <label id="deepEndDepthWrapper" hidden>
-                <span>Deep End Depth (m)</span>
-                <input id="deepEndDepth" type="number" min="0.5" step="0.01" value="">
-              </label>
+  <span>Bottom Type</span>
+  <select id="bottomType">
+    <option value="Flat Bottom">Flat Bottom</option>
+    <option value="Sloped Bottom">Sloped Bottom</option>
+  </select>
+</label>
+<label id="deepEndDepthWrapper" style="display:none;">
+  <span>Deep End Depth (m)</span>
+  <input id="deepEndDepth" type="number" step="0.1">
+</label>
               <label id="existingPoolTypeField" hidden>
                 <span>Existing pool type</span>
                 <select id="existingPoolType">
@@ -199,7 +198,25 @@
               </div>
             </div>
 
-            <label id="scopeFieldWrapper"><span>Included scope</span><textarea id="scope" rows="5">Supply and deliver the approved fibreglass pool shell to the project site. Install the complete pool system, including filtration equipment, pump, pipelines, electrification, underwater lighting, testing, commissioning, and handover in ready-to-use condition.</textarea></label>
+            <label id="scopeFieldWrapper"><span>Scope of Supply & Work</span><textarea id="scope" rows="5">Fybron Scope:
+
+Supply and deliver the approved fibreglass pool shell to the project site. Install the complete pool system, including filtration equipment, pump, pipelines, electrification, underwater lighting, testing, commissioning, and handover in ready-to-use condition.
+
+Client Scope:
+
+• Client shall provide clear site access for transportation and installation activities.
+
+• Excavation work shall be completed by the client as per the excavation drawing provided by Fybron Pools.
+
+• Client shall provide a 100 mm thick PCC (Plain Cement Concrete) base with proper level and finish as per Fybron Pools specifications before pool installation.
+
+• Client shall arrange uninterrupted water supply required for testing and commissioning.
+
+• Client shall provide a suitable electrical power point near the filtration room/pump room.
+
+• Civil works, retaining walls, decking, landscaping, drainage, and other external works are excluded unless specifically mentioned in this quotation.
+
+• Any statutory approvals, permits, or permissions required for the project shall be obtained by the client.</textarea></label>
             <label><span>Notes</span><textarea id="notes" rows="6">We trust that the above details meet your requirements. The quoted prices are competitive and valid for the specified quotation validity period from the date of this proposal.
 
 Kindly review and confirm the project details before approval, as changes cannot be accommodated once production begins. In the event of cancellation, the advance will be adjusted against work completed, and any eligible refund will be processed within 14 days. All legal matters will be subject to the seller's local jurisdiction.</textarea></label>
@@ -230,7 +247,7 @@ Kindly review and confirm the project details before approval, as changes cannot
       <section class="proposal" id="proposal" aria-label="Generated proposal">
         <img class="quotation-letterhead" src="assets/image2.png" alt="Fybron Pools quotation header">
         <div class="proposal-head">
-          <h2 id="proposalTitle">Proposal for Fybron Fibreglass In-Ground Pool</h2>
+          <h2 id="proposalTitle">Proposal for Fybron Fibreglass In-Ground Skimmer Pool</h2>
         </div>
 
         <div class="proposal-meta">
