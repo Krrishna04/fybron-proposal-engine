@@ -1485,8 +1485,8 @@ function renderPoolDiagram(length, width, depth, dimensionLabel, bottomType, dee
     depthLeftLines = `<line x1="${sidePoolX - 24}" y1="${sidePoolTopY}" x2="${sidePoolX - 24}" y2="${bottomY}" class="dimension-line"/><line x1="${sidePoolX - 30}" y1="${sidePoolTopY}" x2="${sidePoolX - 18}" y2="${sidePoolTopY}" class="dimension-tick"/><line x1="${sidePoolX - 30}" y1="${bottomY}" x2="${sidePoolX - 18}" y2="${bottomY}" class="dimension-tick"/><text x="${sidePoolX - 48}" y="${(sidePoolTopY + bottomY) / 2}" text-anchor="middle" class="pool-label pool-depth-label" transform="rotate(-90 ${sidePoolX - 48} ${(sidePoolTopY + bottomY) / 2})">${depthLabelLeft}</text>`;
   }
 
-  const svg = \`
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 \${svgWidth} \${svgHeight}" width="\${svgWidth}" height="\${svgHeight}" style="max-width: 100%; height: auto; display: block; background: white; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${svgWidth} ${svgHeight}" width="${svgWidth}" height="${svgHeight}" style="max-width: 100%; height: auto; display: block; background: white; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
       <defs>
         <style>
           .pool-label { font-family: system-ui, -apple-system, sans-serif; fill: #132126; font-weight: 600; }
@@ -1498,36 +1498,36 @@ function renderPoolDiagram(length, width, depth, dimensionLabel, bottomType, dee
         </style>
       </defs>
       <g id="topDownView">
-        <rect x="\${topPoolX}" y="\${topPoolY}" width="\${scaledLength}" height="\${scaledWidth}" fill="#3aa9c7" opacity="0.15" stroke="#116c67" stroke-width="2.5"/>
-        <rect x="\${topPoolX + 2}" y="\${topPoolY + 2}" width="\${scaledLength - 4}" height="\${scaledWidth - 4}" fill="#3aa9c7" opacity="0.25" stroke="none"/>
-        <circle cx="\${topPoolX}" cy="\${topPoolY}" r="3" fill="#116c67"/>
-        <circle cx="\${topPoolX + scaledLength}" cy="\${topPoolY}" r="3" fill="#116c67"/>
-        <circle cx="\${topPoolX}" cy="\${topPoolY + scaledWidth}" r="3" fill="#116c67"/>
-        <circle cx="\${topPoolX + scaledLength}" cy="\${topPoolY + scaledWidth}" r="3" fill="#116c67"/>
-        <line x1="\${topPoolX}" y1="\${topPoolY - 24}" x2="\${topPoolX + scaledLength}" y2="\${topPoolY - 24}" class="dimension-line"/>
-        <line x1="\${topPoolX}" y1="\${topPoolY - 30}" x2="\${topPoolX}" y2="\${topPoolY - 18}" class="dimension-tick"/>
-        <line x1="\${topPoolX + scaledLength}" y1="\${topPoolY - 30}" x2="\${topPoolX + scaledLength}" y2="\${topPoolY - 18}" class="dimension-tick"/>
-        <text x="\${topPoolX + scaledLength / 2}" y="\${topPoolY - 32}" text-anchor="middle" class="pool-label pool-dimension">Length: \${formatMeasurement(length)} m</text>
-        <line x1="\${topPoolX - 24}" y1="\${topPoolY}" x2="\${topPoolX - 24}" y2="\${topPoolY + scaledWidth}" class="dimension-line"/>
-        <line x1="\${topPoolX - 30}" y1="\${topPoolY}" x2="\${topPoolX - 18}" y2="\${topPoolY}" class="dimension-tick"/>
-        <line x1="\${topPoolX - 30}" y1="\${topPoolY + scaledWidth}" x2="\${topPoolX - 18}" y2="\${topPoolY + scaledWidth}" class="dimension-tick"/>
-        <text x="\${topPoolX - 48}" y="\${topPoolY + scaledWidth / 2}" text-anchor="middle" class="pool-label pool-dimension" transform="rotate(-90 \${topPoolX - 48} \${topPoolY + scaledWidth / 2})">Width: \${formatMeasurement(width)} m</text>
-        <text x="\${topViewStartX + topViewWidth / 2}" y="\${topPoolY + scaledWidth + 50}" text-anchor="middle" class="pool-label pool-title">TOP-DOWN VIEW</text>
+        <rect x="${topPoolX}" y="${topPoolY}" width="${scaledLength}" height="${scaledWidth}" fill="#3aa9c7" opacity="0.15" stroke="#116c67" stroke-width="2.5"/>
+        <rect x="${topPoolX + 2}" y="${topPoolY + 2}" width="${scaledLength - 4}" height="${scaledWidth - 4}" fill="#3aa9c7" opacity="0.25" stroke="none"/>
+        <circle cx="${topPoolX}" cy="${topPoolY}" r="3" fill="#116c67"/>
+        <circle cx="${topPoolX + scaledLength}" cy="${topPoolY}" r="3" fill="#116c67"/>
+        <circle cx="${topPoolX}" cy="${topPoolY + scaledWidth}" r="3" fill="#116c67"/>
+        <circle cx="${topPoolX + scaledLength}" cy="${topPoolY + scaledWidth}" r="3" fill="#116c67"/>
+        <line x1="${topPoolX}" y1="${topPoolY - 24}" x2="${topPoolX + scaledLength}" y2="${topPoolY - 24}" class="dimension-line"/>
+        <line x1="${topPoolX}" y1="${topPoolY - 30}" x2="${topPoolX}" y2="${topPoolY - 18}" class="dimension-tick"/>
+        <line x1="${topPoolX + scaledLength}" y1="${topPoolY - 30}" x2="${topPoolX + scaledLength}" y2="${topPoolY - 18}" class="dimension-tick"/>
+        <text x="${topPoolX + scaledLength / 2}" y="${topPoolY - 32}" text-anchor="middle" class="pool-label pool-dimension">Length: ${formatMeasurement(length)} m</text>
+        <line x1="${topPoolX - 24}" y1="${topPoolY}" x2="${topPoolX - 24}" y2="${topPoolY + scaledWidth}" class="dimension-line"/>
+        <line x1="${topPoolX - 30}" y1="${topPoolY}" x2="${topPoolX - 18}" y2="${topPoolY}" class="dimension-tick"/>
+        <line x1="${topPoolX - 30}" y1="${topPoolY + scaledWidth}" x2="${topPoolX - 18}" y2="${topPoolY + scaledWidth}" class="dimension-tick"/>
+        <text x="${topPoolX - 48}" y="${topPoolY + scaledWidth / 2}" text-anchor="middle" class="pool-label pool-dimension" transform="rotate(-90 ${topPoolX - 48} ${topPoolY + scaledWidth / 2})">Width: ${formatMeasurement(width)} m</text>
+        <text x="${topViewStartX + topViewWidth / 2}" y="${topPoolY + scaledWidth + 50}" text-anchor="middle" class="pool-label pool-title">TOP-DOWN VIEW</text>
       </g>
       <g id="sideView">
-        <text x="\${sideViewStartX + sideViewWidth / 2}" y="\${sidePoolTopY - 28}" text-anchor="middle" class="pool-label pool-title">SIDE ELEVATION VIEW</text>
-        <path d="\${sidePoolPath}" fill="#3aa9c7" opacity="0.15" stroke="#116c67" stroke-width="2.5"/>
-        <line x1="\${sidePoolX}" y1="\${groundY}" x2="\${sidePoolX + scaledLength}" y2="\${groundY}" stroke="#5f6d73" stroke-width="1" stroke-dasharray="4,2"/>
-        \${cornerCircles}
-        \${depthLeftLines}
-        \${depthRightLines}
-        <line x1="\${sidePoolX}" y1="\${lengthDimY}" x2="\${sidePoolX + scaledLength}" y2="\${lengthDimY}" class="dimension-line"/>
-        <line x1="\${sidePoolX}" y1="\${lengthDimY + 6}" x2="\${sidePoolX}" y2="\${lengthDimY + 18}" class="dimension-tick"/>
-        <line x1="\${sidePoolX + scaledLength}" y1="\${lengthDimY + 6}" x2="\${sidePoolX + scaledLength}" y2="\${lengthDimY + 18}" class="dimension-tick"/>
-        <text x="\${sidePoolX + scaledLength / 2}" y="\${lengthDimY + 18}" text-anchor="middle" class="pool-label pool-dimension">Length: \${formatMeasurement(length)} m</text>
+        <text x="${sideViewStartX + sideViewWidth / 2}" y="${sidePoolTopY - 28}" text-anchor="middle" class="pool-label pool-title">SIDE ELEVATION VIEW</text>
+        <path d="${sidePoolPath}" fill="#3aa9c7" opacity="0.15" stroke="#116c67" stroke-width="2.5"/>
+        <line x1="${sidePoolX}" y1="${groundY}" x2="${sidePoolX + scaledLength}" y2="${groundY}" stroke="#5f6d73" stroke-width="1" stroke-dasharray="4,2"/>
+        ${cornerCircles}
+        ${depthLeftLines}
+        ${depthRightLines}
+        <line x1="${sidePoolX}" y1="${lengthDimY}" x2="${sidePoolX + scaledLength}" y2="${lengthDimY}" class="dimension-line"/>
+        <line x1="${sidePoolX}" y1="${lengthDimY + 6}" x2="${sidePoolX}" y2="${lengthDimY + 18}" class="dimension-tick"/>
+        <line x1="${sidePoolX + scaledLength}" y1="${lengthDimY + 6}" x2="${sidePoolX + scaledLength}" y2="${lengthDimY + 18}" class="dimension-tick"/>
+        <text x="${sidePoolX + scaledLength / 2}" y="${lengthDimY + 18}" text-anchor="middle" class="pool-label pool-dimension">Length: ${formatMeasurement(length)} m</text>
       </g>
     </svg>
-  \`;
+  `;
 
   diagramContainer.innerHTML = svg;
 }
