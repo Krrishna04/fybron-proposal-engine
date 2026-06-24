@@ -1045,7 +1045,6 @@ function renderSpecifications(state) {
       <dt>Pool Shell Thickness</dt><dd>${escapeHtml(shellThickness)}</dd>
       <dt>Pool Weight (Dry)</dt><dd>${decimalFormat.format(estimatedShellWeight)} kg</dd>
       <dt>Pool Weight with Water</dt><dd>${totalWeightText}</dd>
-      <dt>Circulation System</dt><dd>${escapeHtml(circSystem)}</dd>
       <dt>Finish</dt><dd>Pigmented smooth gelcoat finish</dd>
       <dt>Pool System</dt><dd>Skimmer type</dd>
       <dt>Brand</dt><dd>FYBRON</dd>
