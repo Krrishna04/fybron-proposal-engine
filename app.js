@@ -1168,7 +1168,7 @@ function renderPriceSummary(state) {
 
   if (state.proposalType === PROPOSAL_TYPES.FIBREGLASS_POOL) {
     if (selected.main) rows.push({ description: "Engineered FRP/GRP Pool Shell", amount: state.shellAmount });
-    if (selected.installation) rows.push({ description: "Delivery, Positioning & Installation", amount: state.installationAmount });
+    if (selected.installation) rows.push({ description: "Delivery, Positioning, Installation & Commissioning", amount: state.installationAmount });
     if (selected.mep) rows.push({ description: "MEP & Water Treatment System", amount: state.mepAmount });
     if (selected.surface) rows.push({ description: "Surface Preparation & Restoration", amount: state.surfaceAmount });
     if (selected.testing) rows.push({ description: "Annual Maintenance Contract (AMC) – 1 Year", amount: state.testingAmount });
@@ -1184,7 +1184,7 @@ if (selected.surface) rows.push({
   description: "Surface Preparation & Restoration",
   amount: state.surfaceAmount
 });    if (selected.mep) rows.push({ description: "MEP & Water Treatment System", amount: state.mepAmount });
-    if (selected.installation && !selected.surface) rows.push({ description: "Delivery, Positioning & Installation", amount: state.installationAmount });
+    if (selected.installation && !selected.surface) rows.push({ description: "Delivery, Positioning, Installation & Commissioning", amount: state.installationAmount });
 if (selected.testing) rows.push({
   description: "Annual Maintenance Contract (AMC) – 1 Year",
   amount: state.testingAmount
