@@ -1171,12 +1171,12 @@ function renderPriceSummary(state) {
     if (selected.installation) rows.push({ description: "Delivery, Positioning & Installation", amount: state.installationAmount });
     if (selected.mep) rows.push({ description: "MEP & Water Treatment System", amount: state.mepAmount });
     if (selected.surface) rows.push({ description: "Surface Preparation & Restoration", amount: state.surfaceAmount });
-    if (selected.testing) rows.push({ description: "Testing & Commissioning", amount: state.testingAmount });
+    if (selected.testing) rows.push({ description: "Annual Maintenance Contract (AMC) – 1 Year", amount: state.testingAmount });
   } else if (state.proposalType === PROPOSAL_TYPES.FRP_WATERPROOFING) {
     if (selected.main) rows.push({ description: "FRP Waterproofing & Lamination Works", amount: state.shellAmount });
     if (selected.surface) rows.push({ description: "Surface Preparation & Restoration", amount: state.surfaceAmount });
 if (selected.testing) rows.push({
-  description: "Testing & Commissioning",
+  description: "Annual Maintenance Contract (AMC) – 1 Year",
   amount: state.testingAmount
 });  } else if (state.proposalType === PROPOSAL_TYPES.FRP_LAMINATION_MEP) {
     if (selected.main) rows.push({ description: "FRP Waterproofing & Lamination Works", amount: state.shellAmount });
@@ -1186,7 +1186,7 @@ if (selected.surface) rows.push({
 });    if (selected.mep) rows.push({ description: "MEP & Water Treatment System", amount: state.mepAmount });
     if (selected.installation && !selected.surface) rows.push({ description: "Delivery, Positioning & Installation", amount: state.installationAmount });
 if (selected.testing) rows.push({
-  description: "Testing & Commissioning",
+  description: "Annual Maintenance Contract (AMC) – 1 Year",
   amount: state.testingAmount
 });  } else if (state.proposalType === PROPOSAL_TYPES.MEP_ONLY) {
     if (selected.main || selected.installation || selected.mep) rows.push({ description: "MEP & Water Treatment System", amount: state.mepAmount });
@@ -1194,7 +1194,7 @@ if (selected.testing) rows.push({
   description: "Surface Preparation & Restoration",
   amount: state.surfaceAmount
 });
-    if (selected.testing) rows.push({ description: "Testing & Commissioning", amount: state.testingAmount });
+    if (selected.testing) rows.push({ description: "Annual Maintenance Contract (AMC) – 1 Year", amount: state.testingAmount });
   }
 
   output.quoteRows.innerHTML = rows.map((row) => `
@@ -1273,7 +1273,8 @@ function renderScopeByProposalType(state) {
         <li>Pumping System</li>
         <li>Plumbing Works</li>
         <li>Electrical Works</li>
-        <li>Testing & Commissioning</li>
+        <li>
+Testing & Commissioning</li>
       </ul>
       <h3>Project Timeline</h3>
       <ul>
