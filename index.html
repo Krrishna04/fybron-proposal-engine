@@ -130,11 +130,32 @@
   <option value="Custom">Custom</option>
 </select>
               <label>
-  <span>Bottom Type</span>
-  <select id="bottomType">
-    <option value="Flat Bottom">Flat Bottom</option>
-    <option value="Sloped Bottom">Sloped Bottom</option>
-  </select>
+    <span>Bottom Profile</span>
+    <select id="bottomType">
+        <option value="Flat Bottom">Flat Bottom</option>
+        <option value="Sloped Bottom">Sloped Bottom</option>
+        <option value="Hopper Bottom">Hopper Bottom</option>
+        <option value="Custom Bottom">Custom Bottom</option>
+    </select>
+</label>
+
+<label>
+    <span>Pool Shell Thickness</span>
+    <select id="poolShellThickness">
+        <option value="8 mm">8 mm</option>
+        <option value="9 mm"selected>9 mm</option>
+        <option value="10 mm">10 mm</option>
+        <option value="12 mm">12 mm</option>
+        <option value="Custom">Custom</option>
+    </select>
+</label>
+
+<label id="customShellThicknessWrapper" style="display:none;">
+    <span>Custom Thickness (mm)</span>
+    <input
+        id="customShellThickness"
+        type="text"
+        placeholder="Example: 14 mm">
 </label>
 <label id="deepEndDepthWrapper" style="display:none;">
   <span>Deep End Depth (m)</span>

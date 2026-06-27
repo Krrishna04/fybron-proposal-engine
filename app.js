@@ -1401,7 +1401,10 @@ function renderPoolDiagram(length, width, depth, dimensionLabel, bottomType, dee
     `;
     return;
   }
+const poolShape =
+  document.getElementById("poolShape")?.value || "Rectangular";
 
+console.log("Pool Shape:", poolShape);
   // Resolve bottom profile
   const normalizedBottom = normalizeBottomType(bottomType || "Flat Bottom");
   const needsDeepEnd = bottomProfileNeedsDeepEnd(bottomType || "Flat Bottom");
@@ -1483,7 +1486,63 @@ function renderPoolDiagram(length, width, depth, dimensionLabel, bottomType, dee
     depthLabelLeft = `Depth: ${formatMeasurement(depth)} m${labelSuffix}`;
     depthLeftLines = `<line x1="${sidePoolX - 24}" y1="${sidePoolTopY}" x2="${sidePoolX - 24}" y2="${bottomY}" class="dimension-line"/><line x1="${sidePoolX - 30}" y1="${sidePoolTopY}" x2="${sidePoolX - 18}" y2="${sidePoolTopY}" class="dimension-tick"/><line x1="${sidePoolX - 30}" y1="${bottomY}" x2="${sidePoolX - 18}" y2="${bottomY}" class="dimension-tick"/><text x="${sidePoolX - 48}" y="${(sidePoolTopY + bottomY) / 2}" text-anchor="middle" class="pool-label pool-depth-label" transform="rotate(-90 ${sidePoolX - 48} ${(sidePoolTopY + bottomY) / 2})">${depthLabelLeft}</text>`;
   }
+let topViewShapeMarkup = "";
 
+if (poolShape === "Oval") {
+
+  topViewShapeMarkup = `
+    <ellipse
+      cx="${topPoolX + scaledLength / 2}"
+      cy="${topPoolY + scaledWidth / 2}"
+      rx="${scaledLength / 2}"
+      ry="${scaledWidth / 2}"
+      fill="#3aa9c7"
+      opacity="0.25"
+      stroke="#116c67"
+      stroke-width="2.5"
+    />
+  `;
+
+} else if (poolShape === "Circular") {
+
+  const radius = Math.min(scaledLength, scaledWidth) / 2;
+
+  topViewShapeMarkup = `
+    <circle
+      cx="${topPoolX + scaledLength / 2}"
+      cy="${topPoolY + scaledWidth / 2}"
+      r="${radius}"
+      fill="#3aa9c7"
+      opacity="0.25"
+      stroke="#116c67"
+      stroke-width="2.5"
+    />
+  `;
+
+} else {
+
+  topViewShapeMarkup = `
+    <rect
+      x="${topPoolX}"
+      y="${topPoolY}"
+      width="${scaledLength}"
+      height="${scaledWidth}"
+      fill="#3aa9c7"
+      opacity="0.15"
+      stroke="#116c67"
+      stroke-width="2.5"
+    />
+    <rect
+      x="${topPoolX + 2}"
+      y="${topPoolY + 2}"
+      width="${scaledLength - 4}"
+      height="${scaledWidth - 4}"
+      fill="#3aa9c7"
+      opacity="0.25"
+      stroke="none"
+    />
+  `;
+}
   const svg = `
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${svgWidth} ${svgHeight}" width="${svgWidth}" height="${svgHeight}" style="max-width: 100%; height: auto; display: block; background: white; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
       <defs>
@@ -1497,8 +1556,7 @@ function renderPoolDiagram(length, width, depth, dimensionLabel, bottomType, dee
         </style>
       </defs>
       <g id="topDownView">
-        <rect x="${topPoolX}" y="${topPoolY}" width="${scaledLength}" height="${scaledWidth}" fill="#3aa9c7" opacity="0.15" stroke="#116c67" stroke-width="2.5"/>
-        <rect x="${topPoolX + 2}" y="${topPoolY + 2}" width="${scaledLength - 4}" height="${scaledWidth - 4}" fill="#3aa9c7" opacity="0.25" stroke="none"/>
+      ${topViewShapeMarkup}
         <circle cx="${topPoolX}" cy="${topPoolY}" r="3" fill="#116c67"/>
         <circle cx="${topPoolX + scaledLength}" cy="${topPoolY}" r="3" fill="#116c67"/>
         <circle cx="${topPoolX}" cy="${topPoolY + scaledWidth}" r="3" fill="#116c67"/>
