@@ -65,6 +65,7 @@ const fields = {
   width: document.querySelector("#width"),
   depthLabel: document.querySelector("#depthLabel"),
   depth: document.querySelector("#depth"),
+  shallowDepth: document.querySelector("#shallowDepth"),
   unit: document.querySelector("#unit"),
   poolType: document.querySelector("#poolType"),
   bottomType: document.querySelector("#bottomType"),
@@ -491,11 +492,12 @@ function bottomSpecificationRows(state) {
   }
 
   if (bottomProfileNeedsDeepEnd(state.bottomType)) {
-    return `
-      <dt>Bottom Profile</dt><dd>${escapeHtml(bottomProfileDisplayName(state.bottomType))}</dd>
-      <dt>Depth Profile</dt><dd>${escapeHtml(state.depthProfileText)}</dd>
-    `;
-  }
+  return `
+    <dt>Bottom Profile</dt><dd>${escapeHtml(bottomProfileDisplayName(state.bottomType))}</dd>
+    <dt>Depth</dt><dd>${escapeHtml(state.depthText)} - ${escapeHtml(state.deepEndDepthText)}</dd>
+    <dt>Depth Profile</dt><dd>${escapeHtml(state.depthProfileText)}</dd>
+  `;
+}
 
   if (state.bottomType === "Custom Bottom Profile") {
     return `
@@ -847,14 +849,24 @@ function calculateTreatmentArea(length, width, depth, unit) {
 function buildProposalState() {
   const length = asNumber(fields.length, 0);
   const width = asNumber(fields.width, 0);
-  const depth = asNumber(fields.depth, 0);
   const bottomType = normalizeBottomType(fields.bottomType?.value);
-  const deepEndDepth = bottomProfileNeedsDeepEnd(bottomType) ? asNumber(fields.deepEndDepth, 0) : null;
+
+const depth = bottomProfileNeedsDeepEnd(bottomType)
+  ? asNumber(fields.shallowDepth, 0)
+  : asNumber(fields.depth, 0);
+    const deepEndDepth = bottomProfileNeedsDeepEnd(bottomType) ? asNumber(fields.deepEndDepth, 0) : null;
   const unit = fields.unit.value;
   const lengthM = toMeters(length, unit);
   const widthM = toMeters(width, unit);
   const depthM = toMeters(depth, unit);
-  const hasDimensions = length > 0 && width > 0 && depth > 0;
+  const hasDepth = bottomProfileNeedsDeepEnd(bottomType)
+    ? depth > 0 && deepEndDepth > 0
+    : depth > 0;
+
+const hasDimensions =
+    length > 0 &&
+    width > 0 &&
+    hasDepth;
   const areaSqFt = sqFtFrom(length, width, unit);
   const volumeLitres = litresFrom(length, width, depth, unit);
   const baseRate = asNumber(fields.baseRate, 0);
@@ -898,8 +910,13 @@ const testingAmount =
     ? `${formatMeasurement(lengthM)} x ${formatMeasurement(widthM)} x ${formatMeasurement(depthM)} m`
     : "Awaiting dimensions";
   const depthText = hasDimensions ? formatDepthWithUnit(depth, unit) : "Awaiting dimensions";
-  const depthProfileText = hasDimensions && bottomProfileNeedsDeepEnd(bottomType) && deepEndDepth > 0
-    ? `${formatDepthWithUnit(depthM, "m")} → ${formatDepthWithUnit(deepEndDepth, "m")}`
+  const shallowDepthText = formatDepthWithUnit(depthM, "m");
+const deepEndDepthText = formatDepthWithUnit(deepEndDepth, "m");
+  const depthProfileText =
+  hasDimensions &&
+  bottomProfileNeedsDeepEnd(bottomType) &&
+  deepEndDepth > 0
+    ? `${shallowDepthText} → ${deepEndDepthText}`
     : depthText;
   const areaText = hasDimensions
     ? `${decimalFormat.format(areaSqFt)} SQFT`
@@ -927,7 +944,9 @@ const testingAmount =
     bottomType,
     deepEndDepth,
     depthText,
-    depthProfileText,
+shallowDepthText,
+deepEndDepthText,
+depthProfileText,
     unit,
     lengthM,
     widthM,
@@ -1649,6 +1668,10 @@ function updateProposalLayoutVisibility(state) {
   const installLabel = fields.installationUnitPrice?.parentElement;
   const mepLabel = fields.mepUnitPrice?.parentElement;
   const needsDeepEndDepth = bottomProfileNeedsDeepEnd(state.bottomType);
+  const singleDepthWrapper = document.getElementById("singleDepthWrapper");
+const slopedDepthWrapper = document.getElementById("slopedDepthWrapper");
+
+const isSloped = needsDeepEndDepth;
   if (fields.depthLabel) {
     fields.depthLabel.textContent = needsDeepEndDepth ? "Shallow End Depth" : "Depth";
   }
@@ -1658,6 +1681,13 @@ function updateProposalLayoutVisibility(state) {
   if (fields.deepEndDepth) {
     fields.deepEndDepth.required = needsDeepEndDepth;
   }
+  if (singleDepthWrapper) {
+    singleDepthWrapper.style.display = isSloped ? "none" : "";
+}
+
+if (slopedDepthWrapper) {
+    slopedDepthWrapper.style.display = isSloped ? "" : "none";
+}
 
   if (state.proposalType === PROPOSAL_TYPES.MEP_ONLY) {
     if (shellLabel) shellLabel.hidden = true;
@@ -1896,8 +1926,29 @@ function areMandatoryFieldsPopulated() {
   const hasLocation = Boolean(fields.location?.value.trim());
   const hasProposalDate = Boolean(fields.proposalDate?.value.trim());
   const hasPhone = /^\d{10,15}$/.test(phone);
-  const hasDimensions = Number.isFinite(length) && length > 0 && Number.isFinite(width) && width > 0 && Number.isFinite(depth) && depth > 0;
-  const hasPoolType = proposalType === PROPOSAL_TYPES.FIBREGLASS_POOL
+const bottomType = normalizeBottomType(fields.bottomType?.value);
+
+const shallowDepth = bottomProfileNeedsDeepEnd(bottomType)
+  ? Number.parseFloat(fields.shallowDepth?.value)
+  : Number.parseFloat(fields.depth?.value);
+
+const deepEndDepth = Number.parseFloat(fields.deepEndDepth?.value);
+
+const hasDepth = bottomProfileNeedsDeepEnd(bottomType)
+  ? Number.isFinite(shallowDepth) &&
+    shallowDepth > 0 &&
+    Number.isFinite(deepEndDepth) &&
+    deepEndDepth > 0
+  : Number.isFinite(shallowDepth) &&
+    shallowDepth > 0;
+
+const hasDimensions =
+  Number.isFinite(length) &&
+  length > 0 &&
+  Number.isFinite(width) &&
+  width > 0 &&
+  hasDepth;
+    const hasPoolType = proposalType === PROPOSAL_TYPES.FIBREGLASS_POOL
     ? Boolean(fields.poolType?.value.trim())
     : Boolean(fields.existingPoolType?.value.trim());
 
